@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +43,18 @@ jobs:
 
       - name: Create review manifest
         run: npm run review:manifest
+
+      - name: Install Chromium for UI review
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture review screenshots
+        run: |
+          python3 -m http.server 4173 -d out >/tmp/windsword-http.log 2>&1 &
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/chat/ >/dev/null; then break; fi
+            sleep 1
+          done
+          npm run review:screenshots
 
       - name: Upload review artifact
         uses: actions/upload-artifact@v4
