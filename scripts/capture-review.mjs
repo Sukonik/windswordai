@@ -7,7 +7,7 @@ mkdirSync("review/screenshots", { recursive: true });
 const browser = await chromium.launch();
 
 async function capture(name, viewport, theme) {
-  const page = await browser.newPage({ viewportSize: viewport });
+  const page = await browser.newPage({ viewport });
   await page.goto(baseURL + "/chat/", { waitUntil: "networkidle" });
   await page.evaluate((nextTheme) => {
     window.localStorage.setItem("windsword-theme", nextTheme);
