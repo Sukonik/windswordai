@@ -1,0 +1,55 @@
+name: WindSwordAI CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Validate synthetic fixtures
+        run: npm run security:fixtures
+
+      - name: Build static demo
+        env:
+          NEXT_PUBLIC_DEMO_MODE: "true"
+        run: npm run build
+
+      - name: Create review manifest
+        run: npm run review:manifest
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windsword-pr-${{ github.event.pull_request.number || 'main' }}-review
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            out/
+            review/
