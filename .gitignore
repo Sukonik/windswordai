@@ -1,24 +1,77 @@
-# Nestjs specific
-/dist
+# Dependencies
 /node_modules
-/build
-/tmp
+/.pnp
+.pnp.*
+
+# Next.js / build output
+/.next/
+/out/
+/dist/
+/build/
+/coverage/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Legal / user data: never commit
+uploads/
+documents/
+matter-files/
+matter_data/
+private-data/
+local-data/
+user-data/
+workspace/
+workspaces/
+storage/
+backups/
+exports/
+
+# Local databases / vector stores
+*.db
+*.sqlite
+*.sqlite3
+postgres-data/
+pgdata/
+vector-data/
+chroma/
+qdrant_storage/
 
 # Logs
-logs
+logs/
 *.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+audit-logs/
+transcripts/
 
-# dotenv environment variable files
-.env
-.env.development
-.env.test
-.env.production
+# Local models
+models/
+*.gguf
+*.ggml
+*.safetensors
+ollama-data/
 
-# temp directory
-.temp
-.tmp
+# Tests / tooling
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary
+.tmp/
+.temp/
+tmp/
+temp/

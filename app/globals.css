@@ -1,0 +1,109 @@
+:root {
+  color-scheme: dark;
+  --bg: #090b0f;
+  --panel: #11151c;
+  --panel-2: #171c24;
+  --text: #f4f7fb;
+  --muted: #9aa8b8;
+  --line: #28313d;
+  --accent: #36b9ff;
+  --accent-2: #9be1ff;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(54,185,255,.12), transparent 28rem),
+    linear-gradient(150deg, #090b0f 0%, #111721 52%, #080a0d 100%);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.app-shell { min-height: 100vh; }
+.topbar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(8,10,14,.78);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand { display: flex; gap: 10px; align-items: center; font-weight: 760; letter-spacing: -.02em; }
+.brand-mark { color: var(--accent); text-shadow: 0 0 18px rgba(54,185,255,.7); }
+.demo-badge {
+  font-size: 12px;
+  color: var(--accent-2);
+  border: 1px solid rgba(54,185,255,.32);
+  background: rgba(54,185,255,.08);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.shell-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 68px); }
+.sidebar {
+  padding: 24px 16px;
+  border-right: 1px solid rgba(255,255,255,.07);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sidebar nav { display: grid; gap: 8px; }
+.sidebar nav a { color: var(--muted); padding: 10px 12px; border-radius: 10px; }
+.sidebar nav a:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.secure-note { color: #6d7b8b; font-size: 12px; padding: 12px; }
+
+.content { min-width: 0; padding: clamp(28px, 6vw, 84px); }
+.hero, .placeholder { max-width: 880px; margin: 0 auto; }
+.eyebrow { color: var(--accent-2); font-size: 13px; text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
+h1 { font-size: clamp(44px, 8vw, 86px); line-height: .96; letter-spacing: -.055em; margin: 16px 0 24px; }
+.placeholder h1 { font-size: clamp(42px, 6vw, 68px); }
+.hero-copy, .placeholder > p:not(.eyebrow) { max-width: 720px; color: var(--muted); line-height: 1.7; font-size: 18px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.primary-link, .secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.primary-link { color: #00121d; background: linear-gradient(135deg, #e8f9ff, #36b9ff); }
+.secondary-link { border: 1px solid var(--line); color: var(--text); background: rgba(255,255,255,.035); }
+.demo-card {
+  margin-top: 46px;
+  max-width: 560px;
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+}
+.demo-card span, .demo-card small { color: var(--muted); }
+.status-list { list-style: none; margin: 28px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.status-list li { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+.status-list strong { color: var(--text); }
+
+@media (max-width: 760px) {
+  .topbar { height: 60px; padding: 0 16px; }
+  .shell-body { display: block; min-height: calc(100vh - 60px); }
+  .sidebar { padding: 10px 12px; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .sidebar nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .sidebar nav a { flex: 0 0 auto; font-size: 13px; padding: 8px 10px; }
+  .secure-note { display: none; }
+  .content { padding: 42px 20px 70px; }
+  h1 { font-size: clamp(44px, 14vw, 64px); }
+  .hero-copy, .placeholder > p:not(.eyebrow) { font-size: 16px; }
+}

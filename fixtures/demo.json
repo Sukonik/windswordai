@@ -1,0 +1,10 @@
+{
+  "workspace": "Demo Municipal Counsel",
+  "matter": "Boardwalk License Review",
+  "conversation": "Review renewal and termination language",
+  "documents": [
+    "Sample-License-Agreement.pdf",
+    "Sample-Council-Memo.docx"
+  ],
+  "notice": "Synthetic demo data only. No real legal documents are included."
+}
