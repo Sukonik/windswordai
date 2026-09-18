@@ -256,12 +256,6 @@ WindSwordAI's design language is inspired by a wind-forged sword aesthetic:
 
 The bottom chat composer should keep the **+**, voice, and send controls prominent across desktop and mobile layouts.
 
-## Name
-
-The name **WindSwordAI** is inspired by **Arifar**, the Wind Sword associated with Eleonora Viltaria in *Lord Marksman and Vanadis*.
-
-WindSwordAI is an independent software project and is not affiliated with the creators, publishers, or rights holders of *Lord Marksman and Vanadis*.
-
 ## License
 
 WindSwordAI is released under the **Mozilla Public License 2.0 (MPL-2.0)**.
