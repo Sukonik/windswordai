@@ -2495,3 +2495,24 @@ button:active:not(:disabled),
     display: none;
   }
 }
+
+/* Mobile scrim occupies only the visible space beside the navigation sheet. */
+@media (max-width: 57.5rem) {
+  :root {
+    --mobile-drawer-width: min(21rem, 88vw);
+  }
+
+  .sidebar {
+    width: var(--mobile-drawer-width);
+  }
+
+  .sidebar-scrim {
+    inset: var(--shell-header) 0 0 var(--mobile-drawer-width);
+  }
+}
+
+@media (max-width: 35rem) {
+  :root {
+    --mobile-drawer-width: min(20.5rem, 88vw);
+  }
+}
