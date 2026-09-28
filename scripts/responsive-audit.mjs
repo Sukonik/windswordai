@@ -113,7 +113,7 @@ for (const viewport of viewports) {
       });
 
       await menu.click();
-      const close = page.getByRole("button", { name: "Close navigation" });
+      const close = page.getByRole("button", { name: "Close navigation", exact: true });
       add({
         viewport: viewport.name,
         route,
