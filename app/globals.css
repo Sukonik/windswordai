@@ -792,7 +792,7 @@ select {
   }
 
   .app-shell::before {
-    inset-left: 0;
+    inset: var(--shell-header) 0 0 0;
   }
 
   .sidebar {
@@ -986,4 +986,472 @@ select {
     backdrop-filter: none;
     background: var(--surface-solid);
   }
+}
+
+/* ==========================================================================
+   WindSwordAI original winged-sword mark + richer Home surface
+   ========================================================================== */
+
+.windsword-mark {
+  display: block;
+  overflow: visible;
+  color: var(--text-soft);
+}
+
+.windsword-mark__wing,
+.windsword-mark__guard,
+.windsword-mark__pommel,
+.windsword-mark__blade-outer {
+  fill: #c7d3df;
+  stroke: #eef8ff;
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+}
+
+.windsword-mark__wing {
+  fill: #aebdcc;
+}
+
+.windsword-mark__feather {
+  fill: none;
+  stroke: #edf7ff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: .74;
+}
+
+.windsword-mark__grip {
+  fill: #162334;
+  stroke: #8298ab;
+  stroke-width: 1.2;
+}
+
+.windsword-mark__wrap {
+  fill: none;
+  stroke: #72879a;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.windsword-mark__gem-ring {
+  fill: #dce7ef;
+  stroke: #7c91a3;
+  stroke-width: 1;
+}
+
+.windsword-mark__gem {
+  fill: var(--red);
+  stroke: #ffb6c1;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 5px rgba(255,64,87,.55));
+}
+
+.windsword-mark__blade {
+  fill: #17669a;
+  stroke: #8edbff;
+  stroke-width: 1;
+}
+
+.windsword-mark__blade-light {
+  fill: #8dd9ff;
+  opacity: .72;
+}
+
+.windsword-mark__blade-edge {
+  fill: none;
+  stroke: #f1fbff;
+  stroke-width: 1.25;
+  opacity: .8;
+}
+
+.windsword-mark--mono .windsword-mark__wing,
+.windsword-mark--mono .windsword-mark__guard,
+.windsword-mark--mono .windsword-mark__pommel,
+.windsword-mark--mono .windsword-mark__blade-outer,
+.windsword-mark--mono .windsword-mark__blade,
+.windsword-mark--mono .windsword-mark__grip,
+.windsword-mark--mono .windsword-mark__gem-ring,
+.windsword-mark--mono .windsword-mark__gem {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.brand-sword {
+  width: 1.72rem;
+  height: 2rem;
+  margin-block: -0.15rem;
+  transform: rotate(-10deg);
+  filter: drop-shadow(0 0 8px rgba(37,184,255,.22));
+}
+
+.brand-sword .windsword-mark__wing {
+  opacity: .92;
+}
+
+.brand-sword .windsword-mark__gem {
+  filter: none;
+}
+
+.wind-emblem {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  border: 1px solid rgba(132,207,243,.12);
+  background: radial-gradient(circle, rgba(37,184,255,.055), transparent 66%);
+  filter: drop-shadow(0 0 20px rgba(37,184,255,.16));
+}
+
+.wind-emblem::after {
+  display: none;
+}
+
+.chat-sword-mark {
+  width: 3.1rem;
+  height: 3.8rem;
+  transform: rotate(-11deg);
+}
+
+.home-hero {
+  padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.home-hero::after {
+  display: none;
+}
+
+.home-hero-grid {
+  min-height: clamp(30rem, 66vh, 43rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(18rem, .92fr);
+  align-items: center;
+  gap: clamp(2.5rem, 7vw, 7rem);
+}
+
+.home-hero-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.home-hero h1 {
+  max-width: 9.5ch;
+  font-size: clamp(3.4rem, 7.2vw, 7rem);
+}
+
+.home-trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem 1.15rem;
+  margin-top: 1.35rem;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.home-trust-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.home-trust-row i {
+  width: .36rem;
+  height: .36rem;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 .6rem rgba(37,184,255,.58);
+}
+
+.home-sword-stage {
+  position: relative;
+  min-height: clamp(25rem, 48vw, 38rem);
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.home-sword-stage::before {
+  content: "";
+  position: absolute;
+  inset: 11% 8%;
+  z-index: -3;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(37,184,255,.12), rgba(37,184,255,.035) 32%, transparent 66%);
+  filter: blur(.2px);
+}
+
+.home-sword-stage::after {
+  content: "";
+  position: absolute;
+  width: 72%;
+  height: 1px;
+  top: 53%;
+  left: 14%;
+  z-index: -2;
+  background: linear-gradient(90deg, transparent, rgba(93,210,255,.16), transparent);
+  transform: rotate(-29deg);
+}
+
+.home-sword-halo {
+  position: absolute;
+  border: 1px solid rgba(93,210,255,.095);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.home-sword-halo--outer {
+  width: 86%;
+  aspect-ratio: 1;
+  box-shadow: 0 0 0 2.7rem rgba(93,210,255,.014);
+}
+
+.home-sword-halo--inner {
+  width: 55%;
+  aspect-ratio: 1;
+  border-style: dashed;
+  opacity: .62;
+}
+
+.home-sword-mark {
+  width: clamp(10.5rem, 19vw, 15rem);
+  height: auto;
+  transform: rotate(-23deg);
+  filter:
+    drop-shadow(0 1.5rem 1.2rem rgba(0,0,0,.28))
+    drop-shadow(0 0 1.5rem rgba(37,184,255,.14));
+}
+
+.home-sword-caption {
+  position: absolute;
+  right: 8%;
+  bottom: 12%;
+  display: grid;
+  gap: .2rem;
+  padding: .7rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--surface-solid) 80%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.home-sword-caption span {
+  color: var(--blue-hot);
+  font-size: .58rem;
+  font-weight: 780;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.home-sword-caption strong {
+  color: var(--text-soft);
+  font-size: .8rem;
+  font-weight: 650;
+}
+
+.home-experience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+  margin-top: clamp(1rem, 2vw, 2rem);
+}
+
+.experience-card {
+  min-height: 14rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 1.15rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008)),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+
+.experience-card::before {
+  content: "";
+  position: absolute;
+  width: 9rem;
+  height: 9rem;
+  right: -4.5rem;
+  bottom: -5rem;
+  border: 1px solid rgba(93,210,255,.07);
+  border-radius: 50%;
+}
+
+.experience-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(93,210,255,.25);
+  background:
+    linear-gradient(145deg, rgba(37,184,255,.07), rgba(255,255,255,.008)),
+    var(--surface);
+}
+
+.experience-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.experience-card__top > span {
+  color: var(--blue-hot);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.experience-card__top small {
+  color: var(--muted-2);
+  font-size: .62rem;
+}
+
+.experience-card h2 {
+  margin: 2.25rem 0 .65rem;
+  max-width: 11ch;
+  color: var(--text);
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  letter-spacing: -.04em;
+  line-height: 1.02;
+}
+
+.experience-card p {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.6;
+}
+
+.experience-card__arrow {
+  margin-top: auto;
+  align-self: flex-end;
+  color: var(--blue-hot);
+}
+
+.home-demo-card {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: .8rem;
+  box-shadow: none;
+}
+
+.home-demo-card > div {
+  display: grid;
+  gap: .35rem;
+}
+
+@media (max-width: 64rem) {
+  .home-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, .72fr);
+    gap: 2rem;
+  }
+
+  .home-sword-stage {
+    min-height: 27rem;
+  }
+
+  .home-experience-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .experience-card:last-child {
+    grid-column: 1 / -1;
+    min-height: 11rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .home-hero-grid {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .home-hero {
+    padding-top: 2rem;
+  }
+
+  .home-hero h1 {
+    max-width: 11ch;
+    font-size: clamp(3rem, 11.5vw, 4.5rem);
+  }
+
+  .home-sword-stage {
+    min-height: 19rem;
+    order: -1;
+  }
+
+  .home-sword-mark {
+    width: clamp(8.5rem, 31vw, 11rem);
+  }
+
+  .home-sword-caption {
+    right: 12%;
+    bottom: 8%;
+  }
+
+  .home-experience-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .experience-card,
+  .experience-card:last-child {
+    grid-column: auto;
+    min-height: 11rem;
+  }
+
+  .home-demo-card {
+    grid-template-columns: 1fr;
+    gap: .75rem;
+  }
+}
+
+@media (max-width: 35rem) {
+  .brand-sword {
+    width: 1.55rem;
+    height: 1.75rem;
+  }
+
+  .home-sword-stage {
+    min-height: 15.5rem;
+  }
+
+  .home-sword-halo--outer {
+    width: 74%;
+  }
+
+  .home-sword-caption {
+    right: 5%;
+    bottom: 2%;
+  }
+
+  .home-trust-row {
+    gap: .5rem .8rem;
+  }
+}
+
+:root[data-theme="light"] .windsword-mark__wing,
+:root[data-theme="light"] .windsword-mark__guard,
+:root[data-theme="light"] .windsword-mark__pommel,
+:root[data-theme="light"] .windsword-mark__blade-outer {
+  fill: #b4c1cc;
+  stroke: #536b7d;
+}
+
+:root[data-theme="light"] .windsword-mark__feather,
+:root[data-theme="light"] .windsword-mark__blade-edge {
+  stroke: #526c80;
 }

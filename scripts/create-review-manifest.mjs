@@ -10,6 +10,8 @@ const manifest = {
   reviewContract: {
     buildOutput: "out/",
     screenshots: [
+      "review/screenshots/home-desktop-dark-1440.png",
+      "review/screenshots/home-mobile-dark-390.png",
       "review/screenshots/desktop-dark-1440.png",
       "review/screenshots/laptop-dark-1024.png",
       "review/screenshots/tablet-dark-768.png",
@@ -41,6 +43,8 @@ writeFileSync("review/summary.md", [
   "",
   "## Visual review",
   "",
+  "- `review/screenshots/home-desktop-dark-1440.png`",
+  "- `review/screenshots/home-mobile-dark-390.png`",
   "- `review/screenshots/desktop-dark-1440.png`",
   "- `review/screenshots/laptop-dark-1024.png`",
   "- `review/screenshots/tablet-dark-768.png`",

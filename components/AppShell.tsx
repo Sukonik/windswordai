@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { WindSwordMark } from "@/components/WindSwordMark";
 
 const primaryNav = [
   { label: "Chat", href: "/chat", icon: "chat" },
@@ -99,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon name="menu" />
           </button>
           <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => setSidebarOpen(false)}>
-            <span className="brand-glyph" aria-hidden="true"><span /></span>
+            <WindSwordMark className="brand-sword" />
             <span className="brand-word">WindSwordAI</span>
           </Link>
         </div>
