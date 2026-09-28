@@ -60,6 +60,7 @@ jobs:
           npm run review:screenshots
 
       - name: Upload review artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windsword-pr-${{ github.event.pull_request.number || 'main' }}-review
