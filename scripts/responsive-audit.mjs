@@ -117,8 +117,10 @@ for (const profile of profiles) {
     });
 
     await menuButton.click();
+    await page.waitForTimeout(280);
     const sidebar = page.locator("#primary-sidebar");
     const drawerVisible = await sidebar.isVisible();
+    const drawerBox = await sidebar.boundingBox();
     const bodyLocked = await page.evaluate(() => document.body.dataset.drawerOpen === "true");
     const closeButton = page.getByRole("button", { name: "Close navigation menu" });
     const closeBox = await closeButton.boundingBox();
@@ -127,9 +129,20 @@ for (const profile of profiles) {
       profile: profile.name,
       interaction: "mobile-menu-open",
       drawerVisible,
+      drawerBox,
       bodyLocked,
       closeBox,
-      ok: drawerVisible && bodyLocked && Boolean(closeBox && closeBox.width >= 44 && closeBox.height >= 44),
+      ok: drawerVisible && bodyLocked && Boolean(
+        drawerBox &&
+        drawerBox.x >= -1 &&
+        drawerBox.width >= profile.width - 2 &&
+        drawerBox.x + drawerBox.width <= profile.width + 1 &&
+        closeBox &&
+        closeBox.x >= -1 &&
+        closeBox.x + closeBox.width <= profile.width + 1 &&
+        closeBox.width >= 44 &&
+        closeBox.height >= 44
+      ),
     });
 
     const darkChoice = page.getByRole("button", { name: "Dark", exact: true });
