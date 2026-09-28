@@ -132,6 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={sidebarOpen}
             aria-controls="windsword-navigation"
+            aria-haspopup="true"
           >
             <Icon name={sidebarOpen ? "close" : "menu"} />
           </button>
@@ -147,8 +148,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button
             className="icon-button theme-button theme-button--topbar"
             onClick={toggleTheme}
-            aria-label="Toggle light or dark theme"
-            title="Toggle light or dark theme"
+            aria-label="Change appearance: toggle light or dark theme"
+            title="Change appearance"
           >
             <ThemeIcons />
           </button>
@@ -160,6 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="windsword-navigation"
           className={sidebarOpen ? "sidebar open" : "sidebar"}
           aria-label="WindSwordAI navigation"
+          aria-hidden={!sidebarOpen && undefined}
         >
           <div className="mobile-drawer-header">
             <div className="mobile-drawer-brand">
@@ -180,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="mobile-drawer-theme">
-            <button className="drawer-theme-button" onClick={toggleTheme} aria-label="Toggle light or dark theme">
+            <button className="drawer-theme-button" onClick={toggleTheme} aria-label="Change appearance: toggle light or dark theme">
               <span className="drawer-theme-copy">
                 <strong>Appearance</strong>
                 <small>
