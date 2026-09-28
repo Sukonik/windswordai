@@ -2,14 +2,16 @@ type WindSwordMarkProps = {
   className?: string;
   title?: string;
   mono?: boolean;
+  variant?: "color" | "shaded" | "line";
 };
 
 export function WindSwordMark({
   className = "",
   title,
   mono = false,
+  variant = "color",
 }: WindSwordMarkProps) {
-  const classes = ["windsword-mark", mono ? "windsword-mark--mono" : "", className]
+  const classes = ["windsword-mark", `windsword-mark--${variant}`, mono ? "windsword-mark--mono" : "", className]
     .filter(Boolean)
     .join(" ");
 
@@ -22,6 +24,11 @@ export function WindSwordMark({
       focusable="false"
     >
       {title ? <title>{title}</title> : null}
+      <defs>
+        <pattern id="windsword-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+          <line x1="0" y1="0" x2="0" y2="5" className="windsword-mark__hatch-line" />
+        </pattern>
+      </defs>
 
       <g className="windsword-mark__wing windsword-mark__wing--left">
         <path d="M55 51C43 48 31 42 18 30c11 3 19 1 27-7-1 9 3 17 12 23Z" />
@@ -55,6 +62,12 @@ export function WindSwordMark({
       <path className="windsword-mark__blade" d="M57 70h14l-3 52-4 17-4-17Z" />
       <path className="windsword-mark__blade-light" d="M60 72h4l-2 56-2 5Z" />
       <path className="windsword-mark__blade-edge" d="M76 68 71 124 64 145 57 124 52 68" />
+      {variant === "shaded" ? (
+        <>
+          <path className="windsword-mark__shade windsword-mark__shade--blade" d="M57 70h14l-3 52-4 17-4-17Z" />
+          <path className="windsword-mark__shade windsword-mark__shade--guard" d="M46 52c5-7 11-10 18-10s13 3 18 10l-8 17c-4-3-7-4-10-4s-6 1-10 4Z" />
+        </>
+      ) : null}
     </svg>
   );
 }
