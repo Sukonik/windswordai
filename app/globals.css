@@ -1863,3 +1863,214 @@ select {
   fill: #eef2f5;
   stroke: #111820;
 }
+
+/* ==========================================================================
+   PR 02C — Fast interaction + accessible control polish
+   ========================================================================== */
+
+:root {
+  --motion-tap: 90ms;
+  --motion-ui: 150ms;
+  --motion-drawer: 180ms;
+  --ease-ui: cubic-bezier(.2,.72,.2,1);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--blue-hot) 28%, transparent);
+}
+
+.sr-only {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+button,
+a,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+.nav-link,
+.new-chat,
+.history-link,
+.primary-link,
+.secondary-link,
+.suggestion-grid button,
+.add-menu > button,
+.drawer-theme-button,
+.experience-card {
+  transition:
+    background-color var(--motion-ui) var(--ease-ui),
+    border-color var(--motion-ui) var(--ease-ui),
+    color var(--motion-ui) var(--ease-ui),
+    opacity var(--motion-ui) var(--ease-ui),
+    box-shadow var(--motion-ui) var(--ease-ui),
+    transform var(--motion-tap) var(--ease-ui);
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--blue-hot);
+  outline-offset: 3px;
+  box-shadow: var(--focus-ring);
+}
+
+.icon-button,
+.composer-action,
+.send-button,
+.drawer-close {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.mode-button {
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.mode-button:focus-within {
+  border-color: var(--blue-hot);
+  box-shadow: var(--focus-ring);
+}
+
+.mode-button select {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.add-menu {
+  transform-origin: left bottom;
+  animation: menu-in 120ms var(--ease-ui) both;
+}
+
+.add-menu > button {
+  min-height: 3rem;
+}
+
+.attachment-chip button {
+  min-width: 2rem;
+  min-height: 2rem;
+  display: grid;
+  place-items: center;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover,
+  .composer-action:hover,
+  .drawer-theme-button:hover,
+  .add-menu > button:hover {
+    border-color: color-mix(in srgb, var(--blue-hot) 28%, var(--line));
+    background-color: rgba(37,184,255,.07);
+  }
+}
+
+button:active:not(:disabled),
+.nav-link:active,
+.new-chat:active,
+.history-link:active,
+.primary-link:active,
+.secondary-link:active,
+.suggestion-grid button:active,
+.add-menu > button:active,
+.drawer-theme-button:active,
+.experience-card:active {
+  transform: scale(.985);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(.35rem) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 57.5rem) {
+  .sidebar {
+    will-change: transform;
+    transition: transform var(--motion-drawer) var(--ease-ui);
+  }
+
+  .sidebar-scrim {
+    animation: scrim-in 120ms ease-out both;
+  }
+
+  .mobile-menu,
+  .theme-button--topbar,
+  .drawer-close {
+    border-color: var(--line-strong);
+  }
+
+  .drawer-theme-button,
+  .new-chat,
+  .nav-link {
+    min-height: 3.25rem;
+  }
+
+  .history-link {
+    min-height: 2.75rem;
+  }
+
+  .add-menu > button {
+    min-height: 3.25rem;
+  }
+
+  .composer-action,
+  .send-button {
+    width: 2.875rem;
+    height: 2.875rem;
+  }
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: rgba(168, 211, 242, .34);
+    --line-strong: rgba(168, 220, 255, .58);
+  }
+
+  .nav-link,
+  .history-link,
+  .composer-action,
+  .mode-button,
+  .drawer-theme-copy small,
+  .secure-pill {
+    color: var(--text-soft);
+  }
+
+  .primary-link,
+  .send-button {
+    border: 2px solid currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-scrim,
+  .add-menu,
+  button,
+  a,
+  .experience-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
