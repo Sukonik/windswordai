@@ -137,7 +137,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
 
           <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => closeSidebar()}>
-            <WindSwordMark className="brand-sword" />
+            <WindSwordMark className="brand-sword" variant="line" />
             <span className="brand-word">WindSwordAI</span>
           </Link>
         </div>
@@ -163,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <div className="mobile-drawer-header">
             <div className="mobile-drawer-brand">
-              <WindSwordMark className="drawer-sword" />
+              <WindSwordMark className="drawer-sword" variant="line" />
               <div>
                 <strong>WindSwordAI</strong>
                 <span><i /> Local Secure</span>
