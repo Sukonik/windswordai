@@ -90,13 +90,44 @@ for (const viewport of viewports) {
         ok: persisted === "light",
       });
 
-      const topTheme = page.getByRole("button", { name: "Toggle light or dark theme" }).first();
+      const topTheme = page.getByRole("button", { name: "Change appearance: toggle light or dark theme" }).first();
       const topThemeVisible = await topTheme.isVisible();
       add({
         viewport: viewport.name,
         route,
         interaction: "topbar-theme-visible",
         ok: topThemeVisible,
+      });
+
+      const touchTargets = await page.evaluate(() => {
+        const selectors = [
+          ".mobile-menu",
+          ".theme-button--topbar",
+          ".composer-action.plus",
+          ".composer-action.voice",
+          ".send-button",
+        ];
+        return selectors.map((selector) => {
+          const element = document.querySelector(selector);
+          if (!(element instanceof HTMLElement)) {
+            return { selector, found: false, width: 0, height: 0, ok: false };
+          }
+          const rect = element.getBoundingClientRect();
+          return {
+            selector,
+            found: true,
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            ok: rect.width >= 44 && rect.height >= 44,
+          };
+        });
+      });
+      add({
+        viewport: viewport.name,
+        route,
+        interaction: "minimum-44px-touch-targets",
+        targets: touchTargets,
+        ok: touchTargets.every((target) => target.ok),
       });
 
       await topTheme.click();
