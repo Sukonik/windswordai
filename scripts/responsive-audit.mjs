@@ -147,6 +147,7 @@ for (const profile of profiles) {
     });
 
     await page.keyboard.press("Escape");
+    await page.waitForTimeout(280);
     const lockedAfterEscape = await page.evaluate(() => document.body.dataset.drawerOpen === "true");
     const drawerAfterEscape = await sidebar.evaluate((node) => {
       const style = getComputedStyle(node);
