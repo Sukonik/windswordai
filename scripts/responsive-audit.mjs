@@ -57,13 +57,26 @@ for (const viewport of viewports) {
         document.documentElement.dataset.theme = "dark";
       });
 
-      const menu = page.getByRole("button", { name: "Open navigation menu" });
-      await menu.click();
+      async function isDrawerOpen() {
+        return page.evaluate(() => document.body.dataset.drawerOpen === "true");
+      }
+
+      async function openDrawer() {
+        if (await isDrawerOpen()) return;
+        await page.getByRole("button", { name: "Open navigation menu" }).click();
+      }
+
+      async function recoverClosedDrawer() {
+        if (!(await isDrawerOpen())) return;
+        await page.getByRole("button", { name: "Close navigation menu" }).click();
+      }
+
+      await openDrawer();
       add({
         viewport: viewport.name,
         route,
         interaction: "drawer-open",
-        ok: await page.evaluate(() => document.body.dataset.drawerOpen === "true"),
+        ok: await isDrawerOpen(),
       });
 
       const drawerTheme = page.locator(".drawer-theme-button");
@@ -143,7 +156,7 @@ for (const viewport of viewports) {
         ok: darkState.dom === "dark" && darkState.saved === "dark",
       });
 
-      await menu.click();
+      await openDrawer();
       const close = page.getByRole("button", { name: "Close navigation", exact: true });
       add({
         viewport: viewport.name,
@@ -156,28 +169,31 @@ for (const viewport of viewports) {
         viewport: viewport.name,
         route,
         interaction: "drawer-close-button",
-        ok: await page.evaluate(() => document.body.dataset.drawerOpen !== "true"),
+        ok: !(await isDrawerOpen()),
       });
+      await recoverClosedDrawer();
 
-      await menu.click();
-      await page.mouse.click(viewport.width - 6, Math.min(160, viewport.height - 20));
+      await openDrawer();
+      await page.mouse.click(viewport.width - 8, Math.min(160, viewport.height - 20));
       add({
         viewport: viewport.name,
         route,
         interaction: "drawer-scrim-close",
-        ok: await page.evaluate(() => document.body.dataset.drawerOpen !== "true"),
+        ok: !(await isDrawerOpen()),
       });
+      await recoverClosedDrawer();
 
-      await menu.click();
+      await openDrawer();
       await page.keyboard.press("Escape");
       add({
         viewport: viewport.name,
         route,
         interaction: "drawer-escape-close",
-        ok: await page.evaluate(() => document.body.dataset.drawerOpen !== "true"),
+        ok: !(await isDrawerOpen()),
       });
+      await recoverClosedDrawer();
 
-      await menu.click();
+      await openDrawer();
       await page.getByRole("link", { name: "Matters" }).click();
       await page.waitForURL(/\/matters\/?$/);
       add({
