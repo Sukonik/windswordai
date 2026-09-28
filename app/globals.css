@@ -1544,7 +1544,7 @@ select {
   }
 
   .sidebar {
-    width: min(23rem, 92vw);
+    width: min(21rem, 88vw);
     padding: 0 max(.8rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(.8rem, env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
@@ -1749,7 +1749,7 @@ select {
   }
 
   .sidebar {
-    width: min(22rem, 94vw);
+    width: min(20.5rem, 88vw);
   }
 }
 
