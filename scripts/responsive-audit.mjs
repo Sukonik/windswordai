@@ -72,10 +72,9 @@ for (const profile of profiles) {
   if (profile.isMobile && profile.width <= 430) {
     const page = await context.newPage();
 
-    await page.addInitScript(() => {
-      localStorage.setItem("windsword-theme", "dark");
-    });
     await page.goto(baseURL + "/chat/", { waitUntil: "networkidle" });
+    await page.evaluate(() => localStorage.setItem("windsword-theme", "dark"));
+    await page.reload({ waitUntil: "networkidle" });
 
     const menuButton = page.getByRole("button", { name: "Open navigation menu" });
     const themeButton = page.getByRole("button", { name: "Toggle light and dark appearance" });
