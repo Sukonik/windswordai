@@ -174,7 +174,8 @@ for (const viewport of viewports) {
       await recoverClosedDrawer();
 
       await openDrawer();
-      await page.mouse.click(viewport.width - 8, Math.min(160, viewport.height - 20));
+      await page.getByRole("button", { name: "Close navigation overlay" }).click();
+      await page.waitForFunction(() => document.body.dataset.drawerOpen !== "true");
       add({
         viewport: viewport.name,
         route,
