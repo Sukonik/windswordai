@@ -1,12 +1,56 @@
-# WindSwordAI
+# WindSwordAI ⚔️
+
+### Secure legal AI workspace · local-first by default
+
+### 🌐 [Open the live WindSwordAI demo](https://sukonik.github.io/windswordai/)
+
+**Status:** Live on GitHub Pages · HTTPS enabled · PR 01 foundation + PR 02 visual shell merged
 
 > **Open by code. Private by data.**
 
 WindSwordAI is a secure AI workspace for legal teams, combining conversational AI, document analysis, grounded answers, citations, drafting, research, and matter-aware workflows.
 
+The current public site is a **synthetic-data interface demo**. It is intentionally safe to explore without real legal documents or live provider credentials.
+
+### 🧭 Explore the live demo
+
+| Experience | Live page |
+| --- | --- |
+| ⚔️ **Home** | [Open WindSwordAI](https://sukonik.github.io/windswordai/) |
+| 💬 **Chat** | [Open the chat workspace](https://sukonik.github.io/windswordai/chat/) |
+| 📁 **Matters** | [Open Matters](https://sukonik.github.io/windswordai/matters/) |
+| 🌙 **Night Studio** | [Open Night Studio](https://sukonik.github.io/windswordai/night-studio/) |
+| 📊 **Status** | [Open build status](https://sukonik.github.io/windswordai/status/) |
+| ⚙️ **Settings** | [Open Settings](https://sukonik.github.io/windswordai/settings/) |
+
+### 🧪 Review + publish
+
+- **Live production site:** [https://sukonik.github.io/windswordai/](https://sukonik.github.io/windswordai/)
+- **CI + downloadable review artifacts:** [WindSwordAI CI](https://github.com/Sukonik/windswordai/actions/workflows/ci.yml)
+- **GitHub Pages deployments:** [Pages workflow](https://github.com/Sukonik/windswordai/actions/workflows/pages.yml)
+- **Development roadmap:** [Open issues](https://github.com/Sukonik/windswordai/issues)
+- **Current responsive/performance pass:** [PR 02B / issue #13](https://github.com/Sukonik/windswordai/issues/13)
+
+Every major UI PR is expected to leave behind a browser-reviewable demo and/or a downloadable `windsword-pr-XX-review` artifact with screenshots, test output, and the static build.
+
+### Current build
+
+| Layer | Status |
+| --- | --- |
+| Next.js + TypeScript foundation | ✅ Implemented |
+| Responsive chat shell / dark + light themes | ✅ Implemented |
+| GitHub Pages publishing + review artifacts | ✅ Implemented |
+| Secure provider gateway / real model runtime | 🧭 PR 03 |
+| Secure document + image loaders | 🧭 PR 04 |
+| LQ.AI retrieval + citations | 🧭 PR 05 |
+| Matter workspace | 🧭 PR 06 |
+| Night Studio team workflows | 🧭 PR 07 |
+| Document Repair 2.0 / OCR 3.0 | 🧭 PR 08–09 |
+| Harvey LAB-style sandbox + evaluation | 🧭 PR 10 |
+
 WindSwordAI is designed as a sibling project to **BlackBowAI**: BlackBowAI focuses on records, migration, classification, search, and document operations; WindSwordAI focuses on secure AI chat, reasoning, research, drafting, and document intelligence.
 
-> **Status:** Early development. Security and architecture items below describe project requirements and implementation targets unless specifically marked as complete.
+> **Development note:** Security and architecture items below describe project requirements and implementation targets unless specifically marked as complete.
 
 ## Core Product Direction
 

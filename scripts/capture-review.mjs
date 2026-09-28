@@ -17,9 +17,12 @@ async function capture(name, viewport, theme) {
   await page.close();
 }
 
-await capture("desktop-dark", { width: 1440, height: 1000 }, "dark");
+await capture("desktop-dark-1440", { width: 1440, height: 1000 }, "dark");
+await capture("laptop-dark-1024", { width: 1024, height: 768 }, "dark");
+await capture("tablet-dark-768", { width: 768, height: 1024 }, "dark");
 await capture("mobile-dark-390", { width: 390, height: 844 }, "dark");
-await capture("desktop-light", { width: 1440, height: 1000 }, "light");
+await capture("mobile-dark-360", { width: 360, height: 800 }, "dark");
+await capture("desktop-light-1440", { width: 1440, height: 1000 }, "light");
 
 await browser.close();
 console.log("Review screenshots captured.");

@@ -6,19 +6,26 @@ const manifest = {
   generatedAt: new Date().toISOString(),
   demoMode: true,
   containsRealLegalData: false,
+  liveDemo: "https://sukonik.github.io/windswordai/",
   reviewContract: {
     buildOutput: "out/",
     screenshots: [
-      "review/screenshots/desktop-dark.png",
+      "review/screenshots/desktop-dark-1440.png",
+      "review/screenshots/laptop-dark-1024.png",
+      "review/screenshots/tablet-dark-768.png",
       "review/screenshots/mobile-dark-390.png",
-      "review/screenshots/desktop-light.png"
+      "review/screenshots/mobile-dark-360.png",
+      "review/screenshots/desktop-light-1440.png"
     ],
-    tests: ["lint", "typecheck", "test", "security:fixtures", "build"],
+    responsiveAudit: "review/responsive-audit.json",
+    testedWidths: [360, 390, 768, 1024, 1440],
+    tests: ["lint", "typecheck", "test", "security:fixtures", "build", "review:responsive"],
   },
   visualIdentity: {
     palette: ["steel/chrome", "neon bright blue", "white", "dark graphite", "wake red"],
     keyInteraction: "Chat composer with + add-on hub, voice, High effort selector, and send control",
-    themes: ["dark", "light"]
+    themes: ["dark", "light"],
+    performancePrinciple: "Rich with CSS and responsive layout; no heavy animation runtime."
   },
   routes: ["/", "/chat", "/matters", "/night-studio", "/settings", "/status"],
 };
@@ -28,13 +35,24 @@ writeFileSync("review/summary.md", [
   "",
   "Synthetic demo content only. No legal documents, credentials, prompts, or matter data are included.",
   "",
+  "## Live demo",
+  "",
+  "https://sukonik.github.io/windswordai/",
+  "",
   "## Visual review",
   "",
-  "- `review/screenshots/desktop-dark.png`",
+  "- `review/screenshots/desktop-dark-1440.png`",
+  "- `review/screenshots/laptop-dark-1024.png`",
+  "- `review/screenshots/tablet-dark-768.png`",
   "- `review/screenshots/mobile-dark-390.png`",
-  "- `review/screenshots/desktop-light.png`",
+  "- `review/screenshots/mobile-dark-360.png`",
+  "- `review/screenshots/desktop-light-1440.png`",
   "",
-  "The PR 02 chat interface is interactive but uses a mock local response only.",
+  "## Responsive QA",
+  "",
+  "See `review/responsive-audit.json` for overflow, console-error, and mobile-drawer checks.",
+  "",
+  "The current chat experience uses a mock local response only.",
   "",
 ].join("\n"));
 console.log("Review manifest created.");

@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.mjs",
     "review:manifest": "node scripts/create-review-manifest.mjs",
     "review:screenshots": "node scripts/capture-review.mjs",
-    "security:fixtures": "node scripts/check-sensitive-fixtures.mjs"
+    "security:fixtures": "node scripts/check-sensitive-fixtures.mjs",
+    "review:responsive": "node scripts/responsive-audit.mjs"
   },
   "dependencies": {
     "next": "16.3.5",
