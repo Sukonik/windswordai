@@ -215,7 +215,10 @@ mkdirSync("review", { recursive: true });
 writeFileSync("review/responsive-audit.json", JSON.stringify(report, null, 2));
 
 if (failed) {
-  console.error("Responsive QA failed. See review/responsive-audit.json");
+  const failures = report.filter((entry) => !entry.ok);
+  console.error("Responsive QA failed:");
+  console.error(JSON.stringify(failures, null, 2));
+  console.error("See review/responsive-audit.json for the full report.");
   process.exit(1);
 }
 
