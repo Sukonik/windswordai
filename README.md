@@ -4,7 +4,7 @@
 
 ### 🌐 [Open the live WindSwordAI demo](https://sukonik.github.io/windswordai/)
 
-**Status:** Live on GitHub Pages · HTTPS enabled · PR 01 foundation + PR 02 visual shell merged
+**Status:** Live on GitHub Pages · HTTPS enabled · mobile/web-first interface under active refinement
 
 > **Open by code. Private by data.**
 
@@ -29,7 +29,7 @@ The current public site is a **synthetic-data interface demo**. It is intentiona
 - **CI + downloadable review artifacts:** [WindSwordAI CI](https://github.com/Sukonik/windswordai/actions/workflows/ci.yml)
 - **GitHub Pages deployments:** [Pages workflow](https://github.com/Sukonik/windswordai/actions/workflows/pages.yml)
 - **Development roadmap:** [Open issues](https://github.com/Sukonik/windswordai/issues)
-- **Current responsive/performance pass:** [PR 02B / issue #13](https://github.com/Sukonik/windswordai/issues/13)
+- **Current mobile/web-first pass:** [PR 02C / issue #17](https://github.com/Sukonik/windswordai/issues/17)
 
 Every major UI PR is expected to leave behind a browser-reviewable demo and/or a downloadable `windsword-pr-XX-review` artifact with screenshots, test output, and the static build.
 
@@ -38,7 +38,7 @@ Every major UI PR is expected to leave behind a browser-reviewable demo and/or a
 | Layer | Status |
 | --- | --- |
 | Next.js + TypeScript foundation | ✅ Implemented |
-| Responsive chat shell / dark + light themes | ✅ Implemented |
+| Responsive chat shell / dark + light themes | ✅ Implemented · mobile/web-first hardening in PR 02C |
 | GitHub Pages publishing + review artifacts | ✅ Implemented |
 | Secure provider gateway / real model runtime | 🧭 PR 03 |
 | Secure document + image loaders | 🧭 PR 04 |

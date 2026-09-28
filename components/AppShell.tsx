@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { WindSwordMark } from "@/components/WindSwordMark";
 
 const primaryNav = [
@@ -41,13 +41,27 @@ function Icon({ name }: { name: string }) {
   if (name === "pulse") return <svg {...common}><path d="M3 12h4l2-5 4 10 2-5h6" /></svg>;
   if (name === "settings") return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1a7 7 0 0 0-1.8-1L14.2 3h-4.4l-.4 3.1a7 7 0 0 0-1.8 1l-2.5-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1a7 7 0 0 0 1.8 1l.4 3.1h4.4l.4-3.1a7 7 0 0 0 1.8-1l2.5 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z" /></svg>;
   if (name === "menu") return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
+  if (name === "close") return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
   if (name === "sun") return <svg {...common}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>;
+  if (name === "moon") return <svg {...common}><path d="M20 15.4A8 8 0 0 1 8.6 4 8.5 8.5 0 1 0 20 15.4Z" /></svg>;
   return <svg {...common}><path d="M12 3v18M7 8l5-5 5 5M6 15h12" /></svg>;
+}
+
+function ThemeIcons() {
+  return (
+    <span className="theme-icons" aria-hidden="true">
+      <span className="theme-icon theme-icon--sun"><Icon name="sun" /></span>
+      <span className="theme-icon theme-icon--moon"><Icon name="moon" /></span>
+    </span>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     const saved = window.localStorage.getItem("windsword-theme");
     document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
@@ -60,10 +74,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
 
     document.body.dataset.drawerOpen = "true";
+    window.setTimeout(() => closeButtonRef.current?.focus(), 0);
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setSidebarOpen(false);
+        window.setTimeout(() => menuButtonRef.current?.focus(), 0);
       }
     }
 
@@ -73,6 +89,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       delete document.body.dataset.drawerOpen;
     };
   }, [sidebarOpen]);
+
+  function closeSidebar({ restoreFocus = false } = {}) {
+    setSidebarOpen(false);
+    if (restoreFocus) {
+      window.setTimeout(() => menuButtonRef.current?.focus(), 0);
+    }
+  }
 
   function toggleTheme() {
     const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
@@ -84,7 +107,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   function NavLink({ item }: { item: { label: string; href: string; icon: string } }) {
     const active = pathname === item.href;
     return (
-      <Link className={active ? "nav-link active" : "nav-link"} href={item.href} aria-current={active ? "page" : undefined} onClick={() => setSidebarOpen(false)}>
+      <Link
+        className={active ? "nav-link active" : "nav-link"}
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        onClick={() => closeSidebar()}
+      >
         <Icon name={item.icon} />
         <span>{item.label}</span>
       </Link>
@@ -94,28 +122,78 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to workspace</a>
+
       <header className="topbar">
         <div className="topbar-left">
-          <button className="icon-button mobile-menu" onClick={() => setSidebarOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={sidebarOpen}>
-            <Icon name="menu" />
+          <button
+            ref={menuButtonRef}
+            className="icon-button mobile-menu"
+            onClick={() => setSidebarOpen((value) => !value)}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={sidebarOpen}
+            aria-controls="windsword-navigation"
+          >
+            <Icon name={sidebarOpen ? "close" : "menu"} />
           </button>
-          <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => setSidebarOpen(false)}>
+
+          <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => closeSidebar()}>
             <WindSwordMark className="brand-sword" />
             <span className="brand-word">WindSwordAI</span>
           </Link>
         </div>
+
         <div className="topbar-actions">
-          <span className="secure-pill"><i /> Local Secure</span>
-          <button className="icon-button theme-button" onClick={toggleTheme} aria-label="Toggle light or dark theme">
-            <Icon name="sun" />
+          <span className="secure-pill" title="Local Secure"><i /> <span>Local Secure</span></span>
+          <button
+            className="icon-button theme-button theme-button--topbar"
+            onClick={toggleTheme}
+            aria-label="Toggle light or dark theme"
+            title="Toggle light or dark theme"
+          >
+            <ThemeIcons />
           </button>
         </div>
       </header>
 
       <div className="shell-body">
-        <aside className={sidebarOpen ? "sidebar open" : "sidebar"} aria-label="WindSwordAI navigation">
-          <div>
-            <Link className="new-chat" href="/chat" onClick={() => setSidebarOpen(false)}>
+        <aside
+          id="windsword-navigation"
+          className={sidebarOpen ? "sidebar open" : "sidebar"}
+          aria-label="WindSwordAI navigation"
+        >
+          <div className="mobile-drawer-header">
+            <div className="mobile-drawer-brand">
+              <WindSwordMark className="drawer-sword" />
+              <div>
+                <strong>WindSwordAI</strong>
+                <span><i /> Local Secure</span>
+              </div>
+            </div>
+            <button
+              ref={closeButtonRef}
+              className="icon-button drawer-close"
+              onClick={() => closeSidebar({ restoreFocus: true })}
+              aria-label="Close navigation"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+
+          <div className="mobile-drawer-theme">
+            <button className="drawer-theme-button" onClick={toggleTheme} aria-label="Toggle light or dark theme">
+              <span className="drawer-theme-copy">
+                <strong>Appearance</strong>
+                <small>
+                  <span className="theme-copy theme-copy--dark">Dark mode</span>
+                  <span className="theme-copy theme-copy--light">Light mode</span>
+                </small>
+              </span>
+              <ThemeIcons />
+            </button>
+          </div>
+
+          <div className="sidebar-main">
+            <Link className="new-chat" href="/chat" onClick={() => closeSidebar()}>
               <span className="new-chat-plus">+</span>
               <span>New chat</span>
             </Link>
@@ -127,7 +205,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="history-block">
               <p>Recent</p>
               {recentChats.map((chat) => (
-                <Link href="/chat" key={chat} className="history-link" onClick={() => setSidebarOpen(false)}>{chat}</Link>
+                <Link href="/chat" key={chat} className="history-link" onClick={() => closeSidebar()}>{chat}</Link>
               ))}
             </div>
           </div>
@@ -138,7 +216,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </aside>
 
-        {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
+        {sidebarOpen && (
+          <button
+            className="sidebar-scrim"
+            onClick={() => closeSidebar({ restoreFocus: true })}
+            aria-label="Close navigation overlay"
+          />
+        )}
 
         <main id="main-content" tabIndex={-1} className={pathname === "/chat" ? "content chat-content" : "content"}>
           {children}

@@ -487,7 +487,7 @@ a { color: inherit; text-decoration: none; }
   .sidebar-scrim { inset: 58px 0 0; }
   .brand-word { font-size: 14px; }
   .secure-pill { padding: 0 8px; font-size: 10px; }
-  .theme-button { display: none; }
+  .theme-button { display: grid; }
   .chat-content { height: calc(100dvh - 58px); }
   .chat-toolbar { padding: 7px 11px 0; }
   .workspace-context { display: none; }
@@ -1454,4 +1454,339 @@ select {
 :root[data-theme="light"] .windsword-mark__feather,
 :root[data-theme="light"] .windsword-mark__blade-edge {
   stroke: #526c80;
+}
+
+/* ==========================================================================
+   PR 02C — Mobile/Web-first navigation + theme controls
+   ========================================================================== */
+
+.theme-icons {
+  width: 1.25rem;
+  height: 1.25rem;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
+}
+
+.theme-icon--moon {
+  opacity: 0;
+  transform: scale(.72) rotate(-16deg);
+}
+
+:root[data-theme="light"] .theme-icon--sun {
+  opacity: 0;
+  transform: scale(.72) rotate(16deg);
+}
+
+:root[data-theme="light"] .theme-icon--moon {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+
+.mobile-drawer-header,
+.mobile-drawer-theme {
+  display: none;
+}
+
+.sidebar-main {
+  min-width: 0;
+}
+
+.theme-copy--light {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-copy--dark {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-copy--light {
+  display: inline;
+}
+
+@media (max-width: 57.5rem) {
+  .topbar {
+    gap: .55rem;
+  }
+
+  .topbar-left,
+  .topbar-actions {
+    min-width: 0;
+  }
+
+  .topbar-left {
+    flex: 1 1 auto;
+  }
+
+  .topbar-actions {
+    flex: 0 0 auto;
+    gap: .35rem;
+  }
+
+  .mobile-menu,
+  .theme-button--topbar {
+    display: grid;
+    flex: 0 0 auto;
+    border-color: var(--line);
+    background: rgba(126, 158, 184, .04);
+  }
+
+  .theme-button--topbar {
+    color: var(--text-soft);
+  }
+
+  .sidebar {
+    width: min(23rem, 92vw);
+    padding: 0 max(.8rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(.8rem, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background:
+      linear-gradient(180deg, rgba(37,184,255,.035), transparent 11rem),
+      var(--surface-solid);
+    border-right: 1px solid var(--line-strong);
+    overscroll-behavior: contain;
+  }
+
+  .mobile-drawer-header {
+    min-height: 4.35rem;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .65rem .2rem .65rem .35rem;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-drawer-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+
+  .drawer-sword {
+    width: 2rem;
+    height: 2.45rem;
+    flex: 0 0 auto;
+    transform: rotate(-10deg);
+  }
+
+  .mobile-drawer-brand > div {
+    min-width: 0;
+    display: grid;
+    gap: .16rem;
+  }
+
+  .mobile-drawer-brand strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-drawer-brand span {
+    display: inline-flex;
+    align-items: center;
+    gap: .38rem;
+    color: var(--muted);
+    font-size: .65rem;
+  }
+
+  .mobile-drawer-brand i {
+    width: .38rem;
+    height: .38rem;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 .55rem rgba(37,184,255,.6);
+  }
+
+  .drawer-close {
+    flex: 0 0 auto;
+    border-color: var(--line);
+    background: rgba(126,158,184,.04);
+  }
+
+  .mobile-drawer-theme {
+    display: block;
+    margin: .75rem .15rem .15rem;
+  }
+
+  .drawer-theme-button {
+    width: 100%;
+    min-height: 3.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .65rem .85rem;
+    border: 1px solid var(--line);
+    border-radius: .9rem;
+    background:
+      linear-gradient(135deg, rgba(37,184,255,.07), rgba(255,255,255,.015)),
+      var(--surface-2);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .drawer-theme-copy {
+    display: grid;
+    gap: .12rem;
+  }
+
+  .drawer-theme-copy strong {
+    color: var(--text-soft);
+    font-size: .8rem;
+  }
+
+  .drawer-theme-copy small {
+    color: var(--muted);
+    font-size: .67rem;
+  }
+
+  .drawer-theme-button .theme-icons {
+    width: 1.4rem;
+    height: 1.4rem;
+    color: var(--blue-hot);
+  }
+
+  .sidebar-main {
+    padding: .75rem .15rem 0;
+  }
+
+  .new-chat {
+    min-height: 3rem;
+    border-radius: .85rem;
+  }
+
+  .primary-nav {
+    margin-top: .75rem;
+    gap: .22rem;
+  }
+
+  .nav-link {
+    min-height: 3rem;
+    padding-inline: .85rem;
+    border-radius: .8rem;
+    font-size: .86rem;
+  }
+
+  .history-block {
+    margin-top: 1.35rem;
+  }
+
+  .history-link {
+    min-height: 2.55rem;
+    display: flex;
+    align-items: center;
+    font-size: .78rem;
+  }
+
+  .utility-nav {
+    margin-top: auto;
+    padding: 1rem .15rem 0;
+  }
+
+  .demo-label {
+    padding-bottom: .5rem;
+  }
+
+  .sidebar-scrim {
+    cursor: default;
+  }
+}
+
+@media (max-width: 35rem) {
+  .topbar {
+    padding-inline: .5rem;
+  }
+
+  .topbar-left {
+    gap: .3rem;
+  }
+
+  .brand {
+    gap: .42rem;
+  }
+
+  .brand-word {
+    max-width: 6.7rem;
+    overflow: hidden;
+    font-size: .84rem;
+    text-overflow: ellipsis;
+  }
+
+  .secure-pill {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .secure-pill > span {
+    display: none;
+  }
+
+  .theme-button--topbar,
+  .mobile-menu {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .sidebar {
+    width: min(22rem, 94vw);
+  }
+}
+
+@media (max-width: 21.5rem) {
+  .brand-word {
+    max-width: 5.25rem;
+    font-size: .78rem;
+  }
+
+  .brand-sword {
+    width: 1.35rem;
+    height: 1.55rem;
+  }
+
+  .topbar-actions {
+    gap: .2rem;
+  }
+}
+
+@media (max-width: 57.5rem) and (max-height: 42rem) {
+  .mobile-drawer-header {
+    min-height: 3.75rem;
+  }
+
+  .mobile-drawer-theme {
+    margin-top: .45rem;
+  }
+
+  .drawer-theme-button {
+    min-height: 3rem;
+  }
+
+  .history-block {
+    margin-top: .8rem;
+  }
+
+  .history-link {
+    min-height: 2.2rem;
+  }
 }
