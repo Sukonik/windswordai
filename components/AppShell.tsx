@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { WindSwordMark } from "@/components/WindSwordMark";
 
 const primaryNav = [
   { label: "Chat", href: "/chat", icon: "chat" },
@@ -52,6 +53,27 @@ export function AppShell({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
   }, []);
 
+  useEffect(() => {
+    if (!sidebarOpen) {
+      delete document.body.dataset.drawerOpen;
+      return;
+    }
+
+    document.body.dataset.drawerOpen = "true";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      delete document.body.dataset.drawerOpen;
+    };
+  }, [sidebarOpen]);
+
   function toggleTheme() {
     const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const next = current === "dark" ? "light" : "dark";
@@ -62,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   function NavLink({ item }: { item: { label: string; href: string; icon: string } }) {
     const active = pathname === item.href;
     return (
-      <Link className={active ? "nav-link active" : "nav-link"} href={item.href} onClick={() => setSidebarOpen(false)}>
+      <Link className={active ? "nav-link active" : "nav-link"} href={item.href} aria-current={active ? "page" : undefined} onClick={() => setSidebarOpen(false)}>
         <Icon name={item.icon} />
         <span>{item.label}</span>
       </Link>
@@ -71,13 +93,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to workspace</a>
       <header className="topbar">
         <div className="topbar-left">
           <button className="icon-button mobile-menu" onClick={() => setSidebarOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={sidebarOpen}>
             <Icon name="menu" />
           </button>
           <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => setSidebarOpen(false)}>
-            <span className="brand-glyph" aria-hidden="true"><span /></span>
+            <WindSwordMark className="brand-sword" />
             <span className="brand-word">WindSwordAI</span>
           </Link>
         </div>
@@ -90,9 +113,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="shell-body">
-        <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
+        <aside className={sidebarOpen ? "sidebar open" : "sidebar"} aria-label="WindSwordAI navigation">
           <div>
-            <Link className="new-chat" href="/chat">
+            <Link className="new-chat" href="/chat" onClick={() => setSidebarOpen(false)}>
               <span className="new-chat-plus">+</span>
               <span>New chat</span>
             </Link>
@@ -117,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}
 
-        <main className={pathname === "/chat" ? "content chat-content" : "content"}>
+        <main id="main-content" tabIndex={-1} className={pathname === "/chat" ? "content chat-content" : "content"}>
           {children}
         </main>
       </div>

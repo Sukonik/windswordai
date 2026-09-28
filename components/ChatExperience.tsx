@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type FormEvent } from "react";
+import { WindSwordMark } from "@/components/WindSwordMark";
 
 type Message = {
   id: number;
@@ -89,9 +90,7 @@ export function ChatExperience() {
         {messages.length === 0 ? (
           <div className="empty-chat">
             <div className="wind-emblem" aria-hidden="true">
-              <span className="blade-line blade-a" />
-              <span className="blade-line blade-b" />
-              <span className="blade-core" />
+              <WindSwordMark className="chat-sword-mark" />
             </div>
             <p className="empty-kicker">Local Secure · Demo Mode</p>
             <h1>What are we working on?</h1>
