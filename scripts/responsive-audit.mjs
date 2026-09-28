@@ -133,7 +133,7 @@ for (const profile of profiles) {
       ok: drawerVisible && bodyLocked && Boolean(closeBox && closeBox.width >= 44 && closeBox.height >= 44),
     });
 
-    const darkChoice = page.getByRole("button", { name: "Dark" });
+    const darkChoice = page.getByRole("button", { name: "Dark", exact: true });
     await darkChoice.click();
     theme = await page.evaluate(() => document.documentElement.dataset.theme);
     savedTheme = await page.evaluate(() => localStorage.getItem("windsword-theme"));
