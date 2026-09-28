@@ -1790,3 +1790,76 @@ select {
     min-height: 2.2rem;
   }
 }
+
+/* PR 02C logo hierarchy: shaded hero, clean compact system marks */
+.windsword-mark__hatch-line {
+  stroke: rgba(5, 10, 16, .72);
+  stroke-width: 1.05;
+}
+
+.windsword-mark__shade {
+  fill: url(#windsword-hatch);
+  opacity: .42;
+  pointer-events: none;
+}
+
+.windsword-mark--shaded .windsword-mark__wing,
+.windsword-mark--shaded .windsword-mark__guard,
+.windsword-mark--shaded .windsword-mark__pommel,
+.windsword-mark--shaded .windsword-mark__blade-outer {
+  fill: #d8e0e7;
+  stroke: #111820;
+  stroke-width: 1.45;
+}
+
+.windsword-mark--shaded .windsword-mark__feather,
+.windsword-mark--shaded .windsword-mark__blade-edge,
+.windsword-mark--shaded .windsword-mark__wrap {
+  stroke: #111820;
+  opacity: .9;
+}
+
+.windsword-mark--shaded .windsword-mark__blade {
+  fill: #b8c5cf;
+  stroke: #111820;
+}
+
+.windsword-mark--shaded .windsword-mark__blade-light {
+  fill: #f4f7f9;
+  opacity: .72;
+}
+
+.windsword-mark--shaded .windsword-mark__gem-ring {
+  fill: #eef3f6;
+  stroke: #111820;
+}
+
+.windsword-mark--shaded .windsword-mark__gem {
+  fill: #111820;
+  stroke: #f6f9fb;
+  filter: none;
+}
+
+.windsword-mark--line .windsword-mark__wing,
+.windsword-mark--line .windsword-mark__guard,
+.windsword-mark--line .windsword-mark__pommel,
+.windsword-mark--line .windsword-mark__blade-outer,
+.windsword-mark--line .windsword-mark__blade,
+.windsword-mark--line .windsword-mark__grip,
+.windsword-mark--line .windsword-mark__gem-ring {
+  fill: transparent;
+  stroke: currentColor;
+}
+
+.windsword-mark--line .windsword-mark__gem {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__wing,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__guard,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__pommel,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__blade-outer {
+  fill: #eef2f5;
+  stroke: #111820;
+}
