@@ -2074,3 +2074,20 @@ button:active:not(:disabled),
     transition: none !important;
   }
 }
+
+/* Closed mobile drawer must not remain keyboard-focusable off-screen. */
+@media (max-width: 57.5rem) {
+  .sidebar {
+    visibility: hidden;
+    transition:
+      transform var(--motion-drawer) var(--ease-ui),
+      visibility 0s linear var(--motion-drawer);
+  }
+
+  .sidebar.open {
+    visibility: visible;
+    transition:
+      transform var(--motion-drawer) var(--ease-ui),
+      visibility 0s linear 0s;
+  }
+}
