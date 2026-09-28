@@ -487,7 +487,7 @@ a { color: inherit; text-decoration: none; }
   .sidebar-scrim { inset: 58px 0 0; }
   .brand-word { font-size: 14px; }
   .secure-pill { padding: 0 8px; font-size: 10px; }
-  .theme-button { display: none; }
+  .theme-button { display: grid; }
   .chat-content { height: calc(100dvh - 58px); }
   .chat-toolbar { padding: 7px 11px 0; }
   .workspace-context { display: none; }
@@ -1454,4 +1454,1065 @@ select {
 :root[data-theme="light"] .windsword-mark__feather,
 :root[data-theme="light"] .windsword-mark__blade-edge {
   stroke: #526c80;
+}
+
+/* ==========================================================================
+   PR 02C — Mobile/Web-first navigation + theme controls
+   ========================================================================== */
+
+.theme-icons {
+  width: 1.25rem;
+  height: 1.25rem;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out);
+}
+
+.theme-icon--moon {
+  opacity: 0;
+  transform: scale(.72) rotate(-16deg);
+}
+
+:root[data-theme="light"] .theme-icon--sun {
+  opacity: 0;
+  transform: scale(.72) rotate(16deg);
+}
+
+:root[data-theme="light"] .theme-icon--moon {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+
+.mobile-drawer-header,
+.mobile-drawer-theme {
+  display: none;
+}
+
+.sidebar-main {
+  min-width: 0;
+}
+
+.theme-copy--light {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-copy--dark {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-copy--light {
+  display: inline;
+}
+
+@media (max-width: 57.5rem) {
+  .topbar {
+    gap: .55rem;
+  }
+
+  .topbar-left,
+  .topbar-actions {
+    min-width: 0;
+  }
+
+  .topbar-left {
+    flex: 1 1 auto;
+  }
+
+  .topbar-actions {
+    flex: 0 0 auto;
+    gap: .35rem;
+  }
+
+  .mobile-menu,
+  .theme-button--topbar {
+    display: grid;
+    flex: 0 0 auto;
+    border-color: var(--line);
+    background: rgba(126, 158, 184, .04);
+  }
+
+  .theme-button--topbar {
+    color: var(--text-soft);
+  }
+
+  .sidebar {
+    width: min(21rem, 88vw);
+    padding: 0 max(.8rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(.8rem, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background:
+      linear-gradient(180deg, rgba(37,184,255,.035), transparent 11rem),
+      var(--surface-solid);
+    border-right: 1px solid var(--line-strong);
+    overscroll-behavior: contain;
+  }
+
+  .mobile-drawer-header {
+    min-height: 4.35rem;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .65rem .2rem .65rem .35rem;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-drawer-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+
+  .drawer-sword {
+    width: 2rem;
+    height: 2.45rem;
+    flex: 0 0 auto;
+    transform: rotate(-10deg);
+  }
+
+  .mobile-drawer-brand > div {
+    min-width: 0;
+    display: grid;
+    gap: .16rem;
+  }
+
+  .mobile-drawer-brand strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-drawer-brand span {
+    display: inline-flex;
+    align-items: center;
+    gap: .38rem;
+    color: var(--muted);
+    font-size: .65rem;
+  }
+
+  .mobile-drawer-brand i {
+    width: .38rem;
+    height: .38rem;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 .55rem rgba(37,184,255,.6);
+  }
+
+  .drawer-close {
+    flex: 0 0 auto;
+    border-color: var(--line);
+    background: rgba(126,158,184,.04);
+  }
+
+  .mobile-drawer-theme {
+    display: block;
+    margin: .75rem .15rem .15rem;
+  }
+
+  .drawer-theme-button {
+    width: 100%;
+    min-height: 3.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .65rem .85rem;
+    border: 1px solid var(--line);
+    border-radius: .9rem;
+    background:
+      linear-gradient(135deg, rgba(37,184,255,.07), rgba(255,255,255,.015)),
+      var(--surface-2);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .drawer-theme-copy {
+    display: grid;
+    gap: .12rem;
+  }
+
+  .drawer-theme-copy strong {
+    color: var(--text-soft);
+    font-size: .8rem;
+  }
+
+  .drawer-theme-copy small {
+    color: var(--muted);
+    font-size: .67rem;
+  }
+
+  .drawer-theme-button .theme-icons {
+    width: 1.4rem;
+    height: 1.4rem;
+    color: var(--blue-hot);
+  }
+
+  .sidebar-main {
+    padding: .75rem .15rem 0;
+  }
+
+  .new-chat {
+    min-height: 3rem;
+    border-radius: .85rem;
+  }
+
+  .primary-nav {
+    margin-top: .75rem;
+    gap: .22rem;
+  }
+
+  .nav-link {
+    min-height: 3rem;
+    padding-inline: .85rem;
+    border-radius: .8rem;
+    font-size: .86rem;
+  }
+
+  .history-block {
+    margin-top: 1.35rem;
+  }
+
+  .history-link {
+    min-height: 2.55rem;
+    display: flex;
+    align-items: center;
+    font-size: .78rem;
+  }
+
+  .utility-nav {
+    margin-top: auto;
+    padding: 1rem .15rem 0;
+  }
+
+  .demo-label {
+    padding-bottom: .5rem;
+  }
+
+  .sidebar-scrim {
+    cursor: default;
+  }
+}
+
+@media (max-width: 35rem) {
+  .topbar {
+    padding-inline: .5rem;
+  }
+
+  .topbar-left {
+    gap: .3rem;
+  }
+
+  .brand {
+    gap: .42rem;
+  }
+
+  .brand-word {
+    max-width: 6.7rem;
+    overflow: hidden;
+    font-size: .84rem;
+    text-overflow: ellipsis;
+  }
+
+  .secure-pill {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .secure-pill > span {
+    display: none;
+  }
+
+  .theme-button--topbar,
+  .mobile-menu {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .sidebar {
+    width: min(20.5rem, 88vw);
+  }
+}
+
+@media (max-width: 21.5rem) {
+  .brand-word {
+    max-width: 5.25rem;
+    font-size: .78rem;
+  }
+
+  .brand-sword {
+    width: 1.35rem;
+    height: 1.55rem;
+  }
+
+  .topbar-actions {
+    gap: .2rem;
+  }
+}
+
+@media (max-width: 57.5rem) and (max-height: 42rem) {
+  .mobile-drawer-header {
+    min-height: 3.75rem;
+  }
+
+  .mobile-drawer-theme {
+    margin-top: .45rem;
+  }
+
+  .drawer-theme-button {
+    min-height: 3rem;
+  }
+
+  .history-block {
+    margin-top: .8rem;
+  }
+
+  .history-link {
+    min-height: 2.2rem;
+  }
+}
+
+/* PR 02C logo hierarchy: shaded hero, clean compact system marks */
+.windsword-mark__hatch-line {
+  stroke: rgba(5, 10, 16, .72);
+  stroke-width: 1.05;
+}
+
+.windsword-mark__shade {
+  fill: url(#windsword-hatch);
+  opacity: .42;
+  pointer-events: none;
+}
+
+.windsword-mark--shaded .windsword-mark__wing,
+.windsword-mark--shaded .windsword-mark__guard,
+.windsword-mark--shaded .windsword-mark__pommel,
+.windsword-mark--shaded .windsword-mark__blade-outer {
+  fill: #d8e0e7;
+  stroke: #111820;
+  stroke-width: 1.45;
+}
+
+.windsword-mark--shaded .windsword-mark__feather,
+.windsword-mark--shaded .windsword-mark__blade-edge,
+.windsword-mark--shaded .windsword-mark__wrap {
+  stroke: #111820;
+  opacity: .9;
+}
+
+.windsword-mark--shaded .windsword-mark__blade {
+  fill: #b8c5cf;
+  stroke: #111820;
+}
+
+.windsword-mark--shaded .windsword-mark__blade-light {
+  fill: #f4f7f9;
+  opacity: .72;
+}
+
+.windsword-mark--shaded .windsword-mark__gem-ring {
+  fill: #eef3f6;
+  stroke: #111820;
+}
+
+.windsword-mark--shaded .windsword-mark__gem {
+  fill: #111820;
+  stroke: #f6f9fb;
+  filter: none;
+}
+
+.windsword-mark--line .windsword-mark__wing,
+.windsword-mark--line .windsword-mark__guard,
+.windsword-mark--line .windsword-mark__pommel,
+.windsword-mark--line .windsword-mark__blade-outer,
+.windsword-mark--line .windsword-mark__blade,
+.windsword-mark--line .windsword-mark__grip,
+.windsword-mark--line .windsword-mark__gem-ring {
+  fill: transparent;
+  stroke: currentColor;
+}
+
+.windsword-mark--line .windsword-mark__gem {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__wing,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__guard,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__pommel,
+:root[data-theme="light"] .windsword-mark--shaded .windsword-mark__blade-outer {
+  fill: #eef2f5;
+  stroke: #111820;
+}
+
+/* ==========================================================================
+   PR 02C — Fast interaction + accessible control polish
+   ========================================================================== */
+
+:root {
+  --motion-tap: 90ms;
+  --motion-ui: 150ms;
+  --motion-drawer: 180ms;
+  --ease-ui: cubic-bezier(.2,.72,.2,1);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--blue-hot) 28%, transparent);
+}
+
+.sr-only {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+button,
+a,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+.nav-link,
+.new-chat,
+.history-link,
+.primary-link,
+.secondary-link,
+.suggestion-grid button,
+.add-menu > button,
+.drawer-theme-button,
+.experience-card {
+  transition:
+    background-color var(--motion-ui) var(--ease-ui),
+    border-color var(--motion-ui) var(--ease-ui),
+    color var(--motion-ui) var(--ease-ui),
+    opacity var(--motion-ui) var(--ease-ui),
+    box-shadow var(--motion-ui) var(--ease-ui),
+    transform var(--motion-tap) var(--ease-ui);
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--blue-hot);
+  outline-offset: 3px;
+  box-shadow: var(--focus-ring);
+}
+
+.icon-button,
+.composer-action,
+.send-button,
+.drawer-close {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.mode-button {
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.mode-button:focus-within {
+  border-color: var(--blue-hot);
+  box-shadow: var(--focus-ring);
+}
+
+.mode-button select {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.add-menu {
+  transform-origin: left bottom;
+  animation: menu-in 120ms var(--ease-ui) both;
+}
+
+.add-menu > button {
+  min-height: 3rem;
+}
+
+.attachment-chip button {
+  min-width: 2rem;
+  min-height: 2rem;
+  display: grid;
+  place-items: center;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover,
+  .composer-action:hover,
+  .drawer-theme-button:hover,
+  .add-menu > button:hover {
+    border-color: color-mix(in srgb, var(--blue-hot) 28%, var(--line));
+    background-color: rgba(37,184,255,.07);
+  }
+}
+
+button:active:not(:disabled),
+.nav-link:active,
+.new-chat:active,
+.history-link:active,
+.primary-link:active,
+.secondary-link:active,
+.suggestion-grid button:active,
+.add-menu > button:active,
+.drawer-theme-button:active,
+.experience-card:active {
+  transform: scale(.985);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(.35rem) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 57.5rem) {
+  .sidebar {
+    will-change: transform;
+    transition: transform var(--motion-drawer) var(--ease-ui);
+  }
+
+  .sidebar-scrim {
+    animation: scrim-in 120ms ease-out both;
+  }
+
+  .mobile-menu,
+  .theme-button--topbar,
+  .drawer-close {
+    border-color: var(--line-strong);
+  }
+
+  .drawer-theme-button,
+  .new-chat,
+  .nav-link {
+    min-height: 3.25rem;
+  }
+
+  .history-link {
+    min-height: 2.75rem;
+  }
+
+  .add-menu > button {
+    min-height: 3.25rem;
+  }
+
+  .composer-action,
+  .send-button {
+    width: 2.875rem;
+    height: 2.875rem;
+  }
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: rgba(168, 211, 242, .34);
+    --line-strong: rgba(168, 220, 255, .58);
+  }
+
+  .nav-link,
+  .history-link,
+  .composer-action,
+  .mode-button,
+  .drawer-theme-copy small,
+  .secure-pill {
+    color: var(--text-soft);
+  }
+
+  .primary-link,
+  .send-button {
+    border: 2px solid currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-scrim,
+  .add-menu,
+  button,
+  a,
+  .experience-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Closed mobile drawer must not remain keyboard-focusable off-screen. */
+@media (max-width: 57.5rem) {
+  .sidebar {
+    visibility: hidden;
+    transition:
+      transform var(--motion-drawer) var(--ease-ui),
+      visibility 0s linear var(--motion-drawer);
+  }
+
+  .sidebar.open {
+    visibility: visible;
+    transition:
+      transform var(--motion-drawer) var(--ease-ui),
+      visibility 0s linear 0s;
+  }
+}
+
+/* ==========================================================================
+   About — full-color WindSword identity + theme-responsive wind
+   ========================================================================== */
+
+.about-page {
+  width: min(76rem, 100%);
+  margin: 0 auto;
+  padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.about-grid {
+  min-height: clamp(31rem, 68vh, 45rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(19rem, .95fr);
+  align-items: center;
+  gap: clamp(2.5rem, 7vw, 7rem);
+}
+
+.about-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.about-copy h1 {
+  max-width: 10ch;
+  margin: .9rem 0 1.35rem;
+  font-size: clamp(3.25rem, 6.8vw, 6.8rem);
+  line-height: .94;
+  letter-spacing: -.058em;
+  text-wrap: balance;
+}
+
+.about-lede,
+.about-support {
+  max-width: 42rem;
+  color: var(--muted);
+  line-height: 1.72;
+  text-wrap: pretty;
+}
+
+.about-lede {
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
+}
+
+.about-support {
+  margin-top: .85rem;
+  font-size: .86rem;
+}
+
+.about-logo-stage {
+  min-height: clamp(27rem, 48vw, 39rem);
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 2rem;
+}
+
+.about-logo-stage::before {
+  content: "";
+  position: absolute;
+  inset: 11% 8%;
+  z-index: -4;
+  border: 1px solid rgba(93,210,255,.08);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(37,184,255,.09), rgba(37,184,255,.025) 36%, transparent 68%);
+}
+
+.about-aura {
+  width: 62%;
+  aspect-ratio: 1;
+  position: absolute;
+  z-index: -3;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.055), rgba(37,184,255,.035) 36%, transparent 72%);
+  filter: blur(1.1rem);
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+
+.about-logo {
+  width: clamp(11.5rem, 21vw, 16.75rem);
+  height: auto;
+  position: relative;
+  z-index: 3;
+  transform: rotate(-19deg);
+  filter:
+    drop-shadow(0 1.5rem 1.5rem rgba(0,0,0,.25))
+    drop-shadow(0 0 1.25rem rgba(37,184,255,.1));
+  transition: filter 240ms ease;
+}
+
+.about-wind {
+  width: 84%;
+  height: 28%;
+  position: absolute;
+  z-index: 1;
+  border-top: 1px solid rgba(93,210,255,.22);
+  border-radius: 50%;
+  opacity: .52;
+  pointer-events: none;
+}
+
+.about-wind::after {
+  content: "";
+  width: 22%;
+  height: 1px;
+  position: absolute;
+  right: 4%;
+  top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(234,250,255,.75), transparent);
+  box-shadow: 0 0 .75rem rgba(93,210,255,.38);
+}
+
+.about-wind--one {
+  top: 31%;
+  transform: rotate(-9deg);
+  animation: aboutWindOrbit 5.4s ease-in-out infinite;
+}
+
+.about-wind--two {
+  top: 48%;
+  width: 96%;
+  transform: rotate(8deg);
+  animation: aboutWindOrbit 6.6s ease-in-out -1.8s infinite reverse;
+}
+
+.about-wind--three {
+  top: 60%;
+  width: 70%;
+  transform: rotate(-4deg);
+  opacity: .34;
+  animation: aboutWindOrbit 7.4s ease-in-out -3.1s infinite;
+}
+
+.about-light-sweep {
+  width: 2.25rem;
+  height: 66%;
+  position: absolute;
+  z-index: 4;
+  top: 12%;
+  left: 46%;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+  filter: blur(.55rem);
+  transform: rotate(-19deg) translateY(-115%);
+}
+
+.about-logo-state {
+  position: absolute;
+  right: 7%;
+  bottom: 9%;
+  z-index: 5;
+  display: grid;
+  gap: .2rem;
+  padding: .72rem .82rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.about-logo-state span {
+  color: var(--blue-hot);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.about-logo-state strong {
+  color: var(--text-soft);
+  font-size: .8rem;
+}
+
+.about-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: .8rem;
+  margin-top: 1rem;
+}
+
+.about-principle {
+  min-height: 14rem;
+  padding: 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.032), rgba(255,255,255,.008)),
+    var(--surface);
+}
+
+.about-principle > span {
+  color: var(--blue-hot);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.about-principle h2 {
+  margin: 2.4rem 0 .65rem;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  letter-spacing: -.035em;
+}
+
+.about-principle p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.62;
+}
+
+.about-note {
+  margin-top: .8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: .9rem;
+  color: var(--muted);
+  background: rgba(127,159,184,.035);
+  font-size: .72rem;
+}
+
+.about-note span {
+  color: var(--blue-hot);
+  font-weight: 760;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.about-note strong {
+  color: var(--text-soft);
+  font-weight: 620;
+}
+
+:root:not([data-theme="light"]) .about-logo-stage {
+  background: radial-gradient(circle at 50% 46%, rgba(238,250,255,.05), transparent 54%);
+}
+
+:root:not([data-theme="light"]) .about-aura {
+  opacity: 1;
+  filter: blur(1.15rem) drop-shadow(0 0 1.6rem rgba(255,255,255,.26));
+  animation: aboutAura 4.2s ease-in-out infinite;
+}
+
+:root:not([data-theme="light"]) .about-logo {
+  filter:
+    brightness(1.14)
+    saturate(.9)
+    drop-shadow(0 0 .55rem rgba(255,255,255,.5))
+    drop-shadow(0 0 1.8rem rgba(93,210,255,.42))
+    drop-shadow(0 1.5rem 1.5rem rgba(0,0,0,.32));
+}
+
+:root:not([data-theme="light"]) .about-logo .windsword-mark__blade {
+  fill: #4fc7ff;
+  stroke: #e8fbff;
+}
+
+:root:not([data-theme="light"]) .about-logo .windsword-mark__blade-light {
+  fill: #ffffff;
+  opacity: .9;
+}
+
+:root:not([data-theme="light"]) .about-wind {
+  border-top-color: rgba(229,249,255,.36);
+  filter: drop-shadow(0 0 .5rem rgba(93,210,255,.25));
+}
+
+:root:not([data-theme="light"]) .about-light-sweep {
+  animation: aboutBladeSweep 5.8s ease-in-out 1s infinite;
+}
+
+@keyframes aboutWindOrbit {
+  0%,100% { translate: -2% 0; opacity: .28; }
+  50% { translate: 3% -.3rem; opacity: .7; }
+}
+
+@keyframes aboutAura {
+  0%,100% { transform: scale(.94); opacity: .58; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes aboutBladeSweep {
+  0%,68%,100% { opacity: 0; transform: rotate(-19deg) translateY(-120%); }
+  76% { opacity: .7; }
+  88% { opacity: .16; transform: rotate(-19deg) translateY(105%); }
+}
+
+@media (max-width: 64rem) {
+  .about-grid {
+    grid-template-columns: minmax(0,1fr) minmax(16rem,.75fr);
+    gap: 2rem;
+  }
+
+  .about-logo-stage {
+    min-height: 29rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .about-page {
+    padding-bottom: 3.5rem;
+  }
+
+  .about-grid {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .about-logo-stage {
+    min-height: 18.5rem;
+    order: -1;
+    border-radius: 1.3rem;
+  }
+
+  .about-logo {
+    width: clamp(8.5rem, 34vw, 11rem);
+    animation: aboutMobileGlow 3.8s ease-in-out infinite;
+  }
+
+  .about-copy h1 {
+    max-width: 11ch;
+    font-size: clamp(3rem, 11.5vw, 4.4rem);
+  }
+
+  .about-wind {
+    width: 76%;
+    height: 22%;
+    animation: aboutMobileWind 3.3s ease-in-out infinite;
+  }
+
+  .about-wind--one { top: 36%; }
+  .about-wind--two { top: 54%; animation-delay: -1.4s; }
+  .about-wind--three { display: none; }
+
+  .about-light-sweep {
+    display: none;
+  }
+
+  .about-logo-state {
+    right: 5%;
+    bottom: 3%;
+  }
+
+  .about-principles {
+    grid-template-columns: 1fr;
+  }
+
+  .about-principle {
+    min-height: 10.5rem;
+  }
+
+  .about-principle h2 {
+    margin-top: 1.6rem;
+  }
+
+  .about-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@keyframes aboutMobileWind {
+  0%,100% { transform: translateX(-4%) rotate(-3deg); opacity: .2; }
+  50% { transform: translateX(5%) rotate(2deg); opacity: .62; }
+}
+
+@keyframes aboutMobileGlow {
+  0%,100% { filter: drop-shadow(0 0 .6rem rgba(93,210,255,.12)); }
+  50% { filter: drop-shadow(0 0 1.2rem rgba(229,249,255,.32)); }
+}
+
+:root[data-theme="light"] .about-logo-stage {
+  background: radial-gradient(circle at 50% 48%, rgba(37,184,255,.055), transparent 56%);
+}
+
+:root[data-theme="light"] .about-aura {
+  opacity: .48;
+}
+
+:root[data-theme="light"] .about-wind {
+  border-top-color: rgba(0,127,190,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-aura,
+  .about-logo,
+  .about-wind,
+  .about-light-sweep {
+    animation: none !important;
+  }
+
+  .about-light-sweep {
+    display: none;
+  }
+}
+
+/* Mobile scrim occupies only the visible space beside the navigation sheet. */
+@media (max-width: 57.5rem) {
+  :root {
+    --mobile-drawer-width: min(21rem, 88vw);
+  }
+
+  .sidebar {
+    width: var(--mobile-drawer-width);
+  }
+
+  .sidebar-scrim {
+    inset: var(--shell-header) 0 0 var(--mobile-drawer-width);
+  }
+}
+
+@media (max-width: 35rem) {
+  :root {
+    --mobile-drawer-width: min(20.5rem, 88vw);
+  }
 }

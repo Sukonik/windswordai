@@ -71,18 +71,18 @@ export function ChatExperience() {
   return (
     <section className="chat-stage">
       <div className="chat-toolbar">
-        <button className="mode-button" type="button">
-          <span className="mode-orb" />
+        <label className="mode-button" aria-label="Reasoning mode and effort">
+          <span className="mode-orb" aria-hidden="true" />
           <span>WindSword</span>
-          <span className="mode-divider" />
-          <span>{effort}</span>
-          <span className="chevron">⌄</span>
+          <span className="mode-divider" aria-hidden="true" />
+          <span aria-hidden="true">{effort}</span>
+          <span className="chevron" aria-hidden="true">⌄</span>
           <select aria-label="Reasoning effort" value={effort} onChange={(event) => setEffort(event.target.value)}>
             <option>High</option>
             <option>Balanced</option>
             <option>Fast</option>
           </select>
-        </button>
+        </label>
         <span className="workspace-context">No matter selected</span>
       </div>
 
@@ -90,7 +90,7 @@ export function ChatExperience() {
         {messages.length === 0 ? (
           <div className="empty-chat">
             <div className="wind-emblem" aria-hidden="true">
-              <WindSwordMark className="chat-sword-mark" />
+              <WindSwordMark className="chat-sword-mark" variant="line" />
             </div>
             <p className="empty-kicker">Local Secure · Demo Mode</p>
             <h1>What are we working on?</h1>
@@ -158,9 +158,17 @@ export function ChatExperience() {
           <div className="composer-controls">
             <div className="composer-left">
               <div className="plus-wrap">
-                <button type="button" className={plusOpen ? "composer-action plus active" : "composer-action plus"} onClick={() => setPlusOpen((value) => !value)} aria-label="Add to chat" aria-expanded={plusOpen}>+</button>
+                <button
+                  type="button"
+                  className={plusOpen ? "composer-action plus active" : "composer-action plus"}
+                  onClick={() => setPlusOpen((value) => !value)}
+                  aria-label={plusOpen ? "Close add menu" : "Add files, photos, or matter context"}
+                  aria-expanded={plusOpen}
+                  aria-haspopup="menu"
+                  aria-controls="windsword-add-menu"
+                >+</button>
                 {plusOpen && (
-                  <div className="add-menu" role="menu">
+                  <div className="add-menu" id="windsword-add-menu" role="menu" aria-label="Add to WindSwordAI">
                     <div className="add-menu-header">Add to WindSwordAI</div>
                     {actions.map((action) => (
                       <button key={action.label} type="button" onClick={() => attach(action.attachment)} role="menuitem">
@@ -181,10 +189,16 @@ export function ChatExperience() {
                 className={listening ? "composer-action voice listening" : "composer-action voice"}
                 onClick={() => setListening((value) => !value)}
                 aria-label={listening ? "Stop demo voice mode" : "Start demo voice mode"}
+                aria-pressed={listening}
               >
                 <span className="voice-bars"><i /><i /><i /></span>
               </button>
-              <button type="submit" className={processing ? "send-button processing" : "send-button"} disabled={!canSend || processing} aria-label="Send message">
+              <button
+                type="submit"
+                className={processing ? "send-button processing" : "send-button"}
+                disabled={!canSend || processing}
+                aria-label={processing ? "WindSwordAI is processing" : "Send message"}
+              >
                 {processing ? <span className="wake-dot" /> : "↑"}
               </button>
             </div>
