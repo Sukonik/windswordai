@@ -4,7 +4,7 @@
 
 ### 🌐 [Open the live WindSwordAI demo](https://sukonik.github.io/windswordai/)
 
-**Status:** Live on GitHub Pages · HTTPS enabled · PR 01 foundation + PR 02 visual shell merged
+**Status:** Live on GitHub Pages · HTTPS enabled · mobile + web first · PR 02C mobile interaction pass in progress
 
 > **Open by code. Private by data.**
 
@@ -29,16 +29,23 @@ The current public site is a **synthetic-data interface demo**. It is intentiona
 - **CI + downloadable review artifacts:** [WindSwordAI CI](https://github.com/Sukonik/windswordai/actions/workflows/ci.yml)
 - **GitHub Pages deployments:** [Pages workflow](https://github.com/Sukonik/windswordai/actions/workflows/pages.yml)
 - **Development roadmap:** [Open issues](https://github.com/Sukonik/windswordai/issues)
-- **Current responsive/performance pass:** [PR 02B / issue #13](https://github.com/Sukonik/windswordai/issues/13)
+- **Current mobile-first pass:** [PR 02C / issue #15](https://github.com/Sukonik/windswordai/issues/15)
 
 Every major UI PR is expected to leave behind a browser-reviewable demo and/or a downloadable `windsword-pr-XX-review` artifact with screenshots, test output, and the static build.
+
+### 📱 Mobile + web first
+
+WindSwordAI treats the phone interface as a primary workspace, not a reduced desktop view. Mobile review includes real touch-device emulation, navigation behavior, theme persistence, safe-area handling, the chat composer, and the `+` action hub.
+
+Current mobile quality gates cover **320, 360, 390, and 430px phones**, **768px tablet**, **1024px laptop**, and **1440px desktop**. The CI review fails on horizontal overflow, browser errors, broken mobile-menu behavior, failed theme persistence, clipped `+` menus, or undersized key touch controls.
+
 
 ### Current build
 
 | Layer | Status |
 | --- | --- |
 | Next.js + TypeScript foundation | ✅ Implemented |
-| Responsive chat shell / dark + light themes | ✅ Implemented |
+| Responsive chat shell / dark + light themes | ✅ Implemented · mobile controls under PR 02C hardening |
 | GitHub Pages publishing + review artifacts | ✅ Implemented |
 | Secure provider gateway / real model runtime | 🧭 PR 03 |
 | Secure document + image loaders | 🧭 PR 04 |
