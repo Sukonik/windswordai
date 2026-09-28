@@ -90,7 +90,7 @@ export function ChatExperience() {
         {messages.length === 0 ? (
           <div className="empty-chat">
             <div className="wind-emblem" aria-hidden="true">
-              <WindSwordMark className="chat-sword-mark" />
+              <WindSwordMark className="chat-sword-mark" variant="line" />
             </div>
             <p className="empty-kicker">Local Secure · Demo Mode</p>
             <h1>What are we working on?</h1>
