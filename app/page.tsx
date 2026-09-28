@@ -53,7 +53,7 @@ export default function HomePage() {
         <div className="home-sword-stage" aria-label="WindSwordAI visual identity">
           <div className="home-sword-halo home-sword-halo--outer" aria-hidden="true" />
           <div className="home-sword-halo home-sword-halo--inner" aria-hidden="true" />
-          <WindSwordMark className="home-sword-mark" title="WindSwordAI winged sword mark" />
+          <WindSwordMark className="home-sword-mark" variant="shaded" title="WindSwordAI winged sword mark" />
           <div className="home-sword-caption">
             <span>Secure Local</span>
             <strong>WindSword</strong>
