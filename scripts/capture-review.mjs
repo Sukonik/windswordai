@@ -49,6 +49,7 @@ await capture(
   "/chat/",
   async (page) => {
     await page.getByRole("button", { name: "Open navigation menu" }).click();
+    await page.waitForTimeout(280);
   }
 );
 await capture(
