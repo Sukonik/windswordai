@@ -20,6 +20,9 @@ async function capture(name, viewport, theme, route = "/chat/", beforeShot) {
 
 await capture("home-desktop-dark-1440", { width: 1440, height: 1000 }, "dark", "/");
 await capture("home-mobile-dark-390", { width: 390, height: 844 }, "dark", "/");
+await capture("about-desktop-dark-1440", { width: 1440, height: 1000 }, "dark", "/about/");
+await capture("about-mobile-dark-390", { width: 390, height: 844 }, "dark", "/about/");
+await capture("about-desktop-light-1440", { width: 1440, height: 1000 }, "light", "/about/");
 await capture("mobile-menu-dark-390", { width: 390, height: 844 }, "dark", "/chat/", async (page) => {
   await page.getByRole("button", { name: "Open navigation menu" }).click();
 });

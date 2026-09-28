@@ -20,6 +20,7 @@ The current public site is a **synthetic-data interface demo**. It is intentiona
 | 💬 **Chat** | [Open the chat workspace](https://sukonik.github.io/windswordai/chat/) |
 | 📁 **Matters** | [Open Matters](https://sukonik.github.io/windswordai/matters/) |
 | 🌙 **Night Studio** | [Open Night Studio](https://sukonik.github.io/windswordai/night-studio/) |
+| 🪽 **About** | [Open About WindSwordAI](https://sukonik.github.io/windswordai/about/) |
 | 📊 **Status** | [Open build status](https://sukonik.github.io/windswordai/status/) |
 | ⚙️ **Settings** | [Open Settings](https://sukonik.github.io/windswordai/settings/) |
 

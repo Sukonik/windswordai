@@ -11,7 +11,7 @@ const viewports = [
   { name: "laptop-1024", width: 1024, height: 768 },
   { name: "desktop-1440", width: 1440, height: 1000 },
 ];
-const routes = ["/", "/chat/", "/matters/", "/night-studio/", "/status/", "/settings/"];
+const routes = ["/", "/chat/", "/matters/", "/night-studio/", "/about/", "/status/", "/settings/"];
 
 const browser = await chromium.launch();
 const report = [];

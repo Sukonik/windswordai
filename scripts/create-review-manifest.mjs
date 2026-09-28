@@ -12,6 +12,9 @@ const manifest = {
     screenshots: [
       "review/screenshots/home-desktop-dark-1440.png",
       "review/screenshots/home-mobile-dark-390.png",
+      "review/screenshots/about-desktop-dark-1440.png",
+      "review/screenshots/about-mobile-dark-390.png",
+      "review/screenshots/about-desktop-light-1440.png",
       "review/screenshots/mobile-menu-dark-390.png",
       "review/screenshots/mobile-menu-light-390.png",
       "review/screenshots/mobile-chat-light-390.png",
@@ -34,7 +37,7 @@ const manifest = {
     themes: ["dark", "light"],
     performancePrinciple: "Rich with CSS and responsive layout; no heavy animation runtime."
   },
-  routes: ["/", "/chat", "/matters", "/night-studio", "/settings", "/status"],
+  routes: ["/", "/chat", "/matters", "/night-studio", "/about", "/settings", "/status"],
 };
 writeFileSync("review/review-manifest.json", JSON.stringify(manifest, null, 2));
 writeFileSync("review/summary.md", [
@@ -50,6 +53,9 @@ writeFileSync("review/summary.md", [
   "",
   "- `review/screenshots/home-desktop-dark-1440.png`",
   "- `review/screenshots/home-mobile-dark-390.png`",
+  "- `review/screenshots/about-desktop-dark-1440.png`",
+  "- `review/screenshots/about-mobile-dark-390.png`",
+  "- `review/screenshots/about-desktop-light-1440.png`",
   "- `review/screenshots/mobile-menu-dark-390.png`",
   "- `review/screenshots/mobile-menu-light-390.png`",
   "- `review/screenshots/mobile-chat-light-390.png`",

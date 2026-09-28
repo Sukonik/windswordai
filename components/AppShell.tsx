@@ -12,6 +12,7 @@ const primaryNav = [
 ] as const;
 
 const utilityNav = [
+  { label: "About", href: "/about", icon: "about" },
   { label: "Status", href: "/status", icon: "pulse" },
   { label: "Settings", href: "/settings", icon: "settings" },
 ] as const;
@@ -39,6 +40,7 @@ function Icon({ name }: { name: string }) {
   if (name === "folder") return <svg {...common}><path d="M3 7.5h6l2-2h10v13H3z" /></svg>;
   if (name === "spark") return <svg {...common}><path d="m12 2 1.6 5.1L19 9l-5.4 1.9L12 16l-1.6-5.1L5 9l5.4-1.9Z" /><path d="m19 16 .8 2.4L22 19l-2.2.6L19 22l-.8-2.4L16 19l2.2-.6Z" /></svg>;
   if (name === "pulse") return <svg {...common}><path d="M3 12h4l2-5 4 10 2-5h6" /></svg>;
+  if (name === "about") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M12 10v6M12 7h.01" /></svg>;
   if (name === "settings") return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1a7 7 0 0 0-1.8-1L14.2 3h-4.4l-.4 3.1a7 7 0 0 0-1.8 1l-2.5-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1a7 7 0 0 0 1.8 1l.4 3.1h4.4l.4-3.1a7 7 0 0 0 1.8-1l2.5 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z" /></svg>;
   if (name === "menu") return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
   if (name === "close") return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
