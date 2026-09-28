@@ -34,6 +34,12 @@ The current public site is a **synthetic-data interface demo**. It is intentiona
 
 Every major UI PR is expected to leave behind a browser-reviewable demo and/or a downloadable `windsword-pr-XX-review` artifact with screenshots, test output, and the static build.
 
+### Responsive-first standard
+
+WindSwordAI uses a project-wide **mobile-first / web-first** interaction standard. [GoldenSunAI](https://sukonik.github.io/goldensunai/index.html) is the responsiveness benchmark for navigation smoothness, spacing, breakpoint behavior, controls, accessibility, and perceived speed.
+
+See [`docs/RESPONSIVE_FIRST.md`](docs/RESPONSIVE_FIRST.md) for the required responsive rules that apply to **every future interface and integration PR**.
+
 ### Current build
 
 | Layer | Status |
