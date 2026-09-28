@@ -129,7 +129,7 @@ for (const viewport of viewports) {
       });
 
       await menu.click();
-      await page.getByRole("button", { name: "Close navigation overlay" }).click({ position: { x: 5, y: 5 } });
+      await page.mouse.click(viewport.width - 6, Math.min(160, viewport.height - 20));
       add({
         viewport: viewport.name,
         route,
