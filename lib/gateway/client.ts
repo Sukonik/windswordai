@@ -16,6 +16,8 @@ export interface Transport {
   preflight(req: Pick<ChatRequest, "mode" | "contentClass" | "attachmentCount">, providers: string[]): Promise<Record<string, PolicyDecision>>;
   connect(providerId: string, input: ConnectInput): Promise<ProviderView>;
   disconnect(providerId: string): Promise<void>;
+  /** Begin delegated account linking; resolves to the provider authorization URL to navigate to. */
+  startOAuth(providerId: string, returnTo: string): Promise<string>;
 }
 
 export interface GatewaySettings {
@@ -41,6 +43,9 @@ export function createDemoTransport(): Transport {
       throw new ProviderError("bad_request", "Connecting accounts needs a running WindSwordAI gateway. This public demo is synthetic-only.");
     },
     async disconnect() {},
+    async startOAuth() {
+      throw new ProviderError("bad_request", "Connecting accounts needs the WindSwordAI app. This public demo is synthetic-only.");
+    },
   };
 }
 
@@ -104,6 +109,9 @@ export function createHttpTransport(url: string, token?: string): Transport {
     },
     async disconnect(providerId) {
       await json(`/v1/connections/${providerId}`, { method: "DELETE" });
+    },
+    async startOAuth(providerId, returnTo) {
+      return (await json<{ authorizeUrl: string }>(`/v1/connections/${providerId}/oauth/start`, { method: "POST", body: JSON.stringify({ returnTo }) })).authorizeUrl;
     },
   };
 }

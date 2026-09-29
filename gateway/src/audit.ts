@@ -2,7 +2,7 @@ import type { ChatRequest, ExecutionMode, PolicyDecision } from "./types.ts";
 
 export interface AuditEvent {
   ts: string;
-  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed";
+  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed" | "connection.failed";
   sessionId?: string;
   compareGroupId?: string;
   providerId?: string;

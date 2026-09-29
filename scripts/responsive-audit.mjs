@@ -47,6 +47,20 @@ for (const viewport of viewports) {
     }
 
     if (route.path === "/chat/") {
+      const pillMin = viewport.width >= 900 ? 38 : 44;
+      const pills = await page.evaluate(() => [".pill-select--provider", ".pill-select--model", ".toolbar-toggle"].map((sel) => { const r = document.querySelector(sel)?.getBoundingClientRect(); return { sel, h: Math.round(r?.height ?? 0), clippedX: r ? r.right > window.innerWidth + 0.5 || r.left < -0.5 : true }; }));
+      add({ ...base, check: "chat-toolbar-pills-touch-size-and-inside-viewport", ok: pills.every((p) => p.h >= pillMin && !p.clippedX), pills });
+      const optionTexts = await page.getByLabel("Provider", { exact: true }).evaluate((el) => [...el.options].map((o) => o.text));
+      add({ ...base, check: "picker-lists-every-registered-provider-with-status", ok: ["Claude", "ChatGPT", "Muse", "Gemini", "Mistral", "Ollama", "Demo"].every((n) => optionTexts.some((t) => t.startsWith(n))), optionTexts });
+      await page.getByRole("button", { name: /Execution mode: Secure Local/ }).click();
+      await page.getByLabel("Provider", { exact: true }).selectOption({ label: "Claude — connect in the app" });
+      const demoSheet = page.getByRole("dialog", { name: "Connect Claude" });
+      await demoSheet.waitFor();
+      add({ ...base, check: "choosing-unconnected-provider-in-chat-opens-connect-sheet", ok: /synthetic-only/.test(await demoSheet.innerText()) });
+      await page.keyboard.press("Escape");
+      await demoSheet.waitFor({ state: "detached" });
+      await page.getByRole("button", { name: /Execution mode: Standard/ }).click();
+
       // Silver sword wakes to colour while the composer is in use, then settles back.
       const wakeOpacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector(".empty-chat .wake-mark__color")).opacity));
       const grayOpacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector(".empty-chat .wake-mark__gray")).opacity));
@@ -91,6 +105,30 @@ for (const viewport of viewports) {
       add({ ...base, check: "round-controls-are-not-squashed", ok: shapes.circles.every((c) => Math.abs(c.w - c.h) < 0.6), shapes: shapes.circles });
       add({ ...base, check: "suggestion-chips-uniform-and-44", ok: shapes.chips.every((c) => c.h >= 44 && shapes.chips.filter((o) => o.row === c.row).every((o) => o.h === c.h)), chips: shapes.chips });
       add({ ...base, check: "composer-touch-targets-44", ok: composerTargets.every((t) => t.w >= minTarget && t.h >= minTarget), composerTargets });
+    }
+
+    if (route.path === "/settings/") {
+      const minBtn = viewport.width >= 900 ? 40 : 44;
+      const heights = await page.evaluate(() => [...document.querySelectorAll(".provider-card__action .btn")].map((b) => Math.round(b.getBoundingClientRect().height)));
+      add({ ...base, check: "settings-card-actions-touch-size", ok: heights.length >= 5 && heights.every((h) => h >= minBtn), heights });
+      add({ ...base, check: "settings-advanced-collapsed-by-default", ok: !(await page.locator("#advanced").evaluate((el) => el.open)) && !(await page.getByLabel(/Gateway URL/).isVisible()) });
+
+      const trigger = page.getByRole("button", { name: "Connect Claude" });
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: "Connect Claude" });
+      await dialog.waitFor();
+      await page.waitForTimeout(300);
+      const fit = await page.evaluate(() => {
+        const r = document.querySelector(".sheet").getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, vw: window.innerWidth, vh: window.innerHeight, locked: getComputedStyle(document.body).overflow === "hidden", focusInside: document.querySelector(".sheet").contains(document.activeElement) };
+      });
+      add({ ...base, check: "connect-sheet-fits-viewport-and-locks-scroll", ok: fit.top >= 0 && fit.bottom <= fit.vh + 1 && fit.left >= 0 && fit.right <= fit.vw + 1 && fit.locked, fit });
+      add({ ...base, check: "connect-sheet-moves-focus-inside", ok: fit.focusInside });
+      for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
+      add({ ...base, check: "connect-sheet-traps-focus", ok: await page.evaluate(() => document.querySelector(".sheet").contains(document.activeElement)) });
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "detached" });
+      add({ ...base, check: "connect-sheet-escape-closes-and-restores-focus", ok: await page.evaluate(() => document.activeElement?.textContent?.includes("Connect Claude") === true) });
     }
 
     if (viewport.width <= PHONE_MAX) {

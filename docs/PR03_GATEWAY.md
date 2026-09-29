@@ -32,7 +32,7 @@ npm run start:local          # builds the UI and starts the gateway on http://12
 
 - Default mode is **Secure Local**: cloud providers are visibly disabled. Switch to **Standard** (toolbar pill or Settings) to use connected cloud providers for general prompts.
 - Ollama needs no account: start Ollama, open Settings, and its models appear.
-- Other devices on your network (phone): build once with `npm run build:local`, then start with `WINDSWORD_HOST=0.0.0.0 npm run gateway` (PowerShell: `$env:WINDSWORD_HOST="0.0.0.0"; npm run gateway`). The gateway prints your LAN address(es) and a random bearer token. Open the LAN address on the phone, go to Settings → Gateway and enter the token. The server refuses to bind beyond loopback without one.
+- Other devices on your network (phone): build once with `npm run build:local`, then start with `WINDSWORD_HOST=0.0.0.0 npm run gateway` (PowerShell: `$env:WINDSWORD_HOST="0.0.0.0"; npm run gateway`). The gateway prints your LAN address(es) and a random bearer token. Open the LAN address on the phone, go to Settings → Advanced connection settings and enter the token. The server refuses to bind beyond loopback without one.
 - Public Pages site: stays a **synthetic demo**. It uses an in-browser mock provider through the same policy code and cannot connect accounts (a static site cannot hold secrets).
 - Try it with no keys: `npm run fake-providers` starts fake Anthropic/OpenAI-shaped upstreams; connect Claude with key `sk-fake-claude-000111` and base URL `http://127.0.0.1:9911`, OpenAI with `sk-fake-openai-000222` and base URL `http://127.0.0.1:9911/v1`.
 
@@ -54,6 +54,8 @@ npm run start:local          # builds the UI and starts the gateway on http://12
 | `WINDSWORD_ALLOWED_ORIGINS` | CORS allow-list (default: localhost 3000/8787). Add the Pages origin to use the hosted UI against your gateway |
 | `WINDSWORD_APPROVED_FOR_PROTECTED` | Comma list of cloud providers explicitly approved for protected material (default: none) |
 | `WINDSWORD_STATIC_DIR` | UI export to serve (default `out`) |
+
+> Account-linking UX and the OAuth connector are documented in [`PR03B_ACCOUNT_LINKING.md`](PR03B_ACCOUNT_LINKING.md).
 
 ## Policy (single gate, unit-tested)
 

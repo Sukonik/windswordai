@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { asset } from "@/lib/assets";
 import { AppShell } from "@/components/AppShell";
+import { ConnectProvider } from "@/components/ConnectProvider";
 import { GatewayProvider } from "@/components/GatewayProvider";
 import "./globals.css";
 
@@ -60,7 +61,9 @@ export default function RootLayout({
       </head>
       <body>
         <GatewayProvider>
-          <AppShell>{children}</AppShell>
+          <ConnectProvider>
+            <AppShell>{children}</AppShell>
+          </ConnectProvider>
         </GatewayProvider>
       </body>
     </html>

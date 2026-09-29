@@ -12,6 +12,13 @@ export const geminiDescriptor: ProviderDescriptor = {
   enabled: true,
   authMethods: [
     {
+      type: "oauth",
+      label: "Continue with Google",
+      status: "available",
+      usageSource: "api_billing",
+      note: "Google account linking (OAuth). Usable when an OAuth client is configured on the gateway; otherwise use a developer key.",
+    },
+    {
       type: "api_key",
       label: "Gemini API key (free tier or paid)",
       status: "available",
@@ -32,7 +39,8 @@ export function createGeminiAdapter(): ProviderAdapter {
   async function headers(ctx: AdapterContext) {
     const key = await ctx.getSecret();
     if (!key) throw new ProviderError("auth_failed", "Gemini is not connected.", false);
-    return { "x-goog-api-key": key, "content-type": "application/json" };
+    const auth: Record<string, string> = ctx.credentialKind === "bearer" ? { authorization: `Bearer ${key}` } : { "x-goog-api-key": key };
+    return { ...auth, "content-type": "application/json" };
   }
   return {
     descriptor: geminiDescriptor,
