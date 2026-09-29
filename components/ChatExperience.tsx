@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { BrandMark } from "@/components/BrandMark";
+import { WakeMark } from "@/components/WakeMark";
 import { Icon } from "@/components/Icon";
 
 type Message = {
@@ -32,6 +32,7 @@ export function ChatExperience() {
   const [effort, setEffort] = useState("High");
   const [processing, setProcessing] = useState(false);
   const [listening, setListening] = useState(false);
+  const [focused, setFocused] = useState(false);
   const nextId = useRef(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const plusWrapRef = useRef<HTMLDivElement>(null);
@@ -151,6 +152,9 @@ export function ChatExperience() {
     };
   }, [plusOpen]);
 
+  // The sword wakes while chat is in use and settles back to silver when idle.
+  const awake = focused || text.trim().length > 0 || attachments.length > 0 || plusOpen || processing;
+
   const canSend = useMemo(() => text.trim().length > 0 || attachments.length > 0, [text, attachments]);
 
   function attach(name: string) {
@@ -208,7 +212,7 @@ export function ChatExperience() {
       <div className="conversation" ref={feedRef} onScroll={onFeedScroll} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation">
         {messages.length === 0 ? (
           <div className="empty-chat">
-            <BrandMark variant="shaded" className="empty-chat__mark" />
+            <WakeMark className="empty-chat__mark" awake={awake} working={processing} />
             <p className="empty-kicker">Local Secure · Demo Mode</p>
             <h1>What are we working on?</h1>
             <p className="empty-copy">
@@ -225,7 +229,7 @@ export function ChatExperience() {
           <div className="message-list" ref={listRef}>
             {messages.map((message) => (
               <article key={message.id} className={`message ${message.role}`}>
-                <div className="message-avatar">{message.role === "assistant" ? "W" : "N"}</div>
+                <div className="message-avatar">{message.role === "assistant" ? <WakeMark small awake={false} /> : "N"}</div>
                 <div>
                   <span className="message-role">{message.role === "assistant" ? "WindSwordAI" : "You"}</span>
                   <p>{message.text}</p>
@@ -234,7 +238,7 @@ export function ChatExperience() {
             ))}
             {processing && (
               <article className="message assistant processing-message">
-                <div className="message-avatar processing-avatar"><span /></div>
+                <div className="message-avatar processing-avatar"><WakeMark small awake working /></div>
                 <div>
                   <span className="message-role">WindSwordAI</span>
                   <div className="thinking-line"><i /><i /><i /></div>
@@ -279,6 +283,8 @@ export function ChatExperience() {
             rows={1}
             placeholder="Ask WindSwordAI"
             aria-label="Message WindSwordAI"
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             enterKeyHint="send"
             autoComplete="off"
             autoCapitalize="sentences"
