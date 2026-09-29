@@ -6,6 +6,7 @@
 # Next.js / build output
 /.next/
 /out/
+/review/
 /dist/
 /build/
 /coverage/

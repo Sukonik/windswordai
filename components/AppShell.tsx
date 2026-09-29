@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { WindSwordMark } from "@/components/WindSwordMark";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { BrandMark } from "@/components/BrandMark";
+import { Icon } from "@/components/Icon";
+import { ThemeButton, ThemeSegment } from "@/components/ThemeToggle";
 
 const primaryNav = [
   { label: "Chat", href: "/chat", icon: "chat" },
@@ -23,97 +25,59 @@ const recentChats = [
   "Compare contract revisions",
 ];
 
-function Icon({ name }: { name: string }) {
-  const common = {
-    width: 18,
-    height: 18,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
-  if (name === "chat") return <svg {...common}><path d="M7 18.5 3.5 21l1-4.2A8 8 0 1 1 7 18.5Z" /></svg>;
-  if (name === "folder") return <svg {...common}><path d="M3 7.5h6l2-2h10v13H3z" /></svg>;
-  if (name === "spark") return <svg {...common}><path d="m12 2 1.6 5.1L19 9l-5.4 1.9L12 16l-1.6-5.1L5 9l5.4-1.9Z" /><path d="m19 16 .8 2.4L22 19l-2.2.6L19 22l-.8-2.4L16 19l2.2-.6Z" /></svg>;
-  if (name === "pulse") return <svg {...common}><path d="M3 12h4l2-5 4 10 2-5h6" /></svg>;
-  if (name === "about") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M12 10v6M12 7h.01" /></svg>;
-  if (name === "settings") return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1a7 7 0 0 0-1.8-1L14.2 3h-4.4l-.4 3.1a7 7 0 0 0-1.8 1l-2.5-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1a7 7 0 0 0 1.8 1l.4 3.1h4.4l.4-3.1a7 7 0 0 0 1.8-1l2.5 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z" /></svg>;
-  if (name === "menu") return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
-  if (name === "close") return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
-  if (name === "sun") return <svg {...common}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>;
-  if (name === "moon") return <svg {...common}><path d="M20 15.4A8 8 0 0 1 8.6 4 8.5 8.5 0 1 0 20 15.4Z" /></svg>;
-  return <svg {...common}><path d="M12 3v18M7 8l5-5 5 5M6 15h12" /></svg>;
-}
-
-function ThemeIcons() {
-  return (
-    <span className="theme-icons" aria-hidden="true">
-      <span className="theme-icon theme-icon--sun"><Icon name="sun" /></span>
-      <span className="theme-icon theme-icon--moon"><Icon name="moon" /></span>
-    </span>
-  );
-}
+type NavItem = { label: string; href: string; icon: string };
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // The sheet is "open for" a specific route, so navigating always closes it.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  const open = openAt === pathname;
+  const setOpen = useCallback((value: boolean | ((current: boolean) => boolean)) => {
+    setOpenAt((current) => {
+      const now = current === pathname;
+      const next = typeof value === "function" ? value(now) : value;
+      return next ? pathname : null;
+    });
+  }, [pathname]);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem("windsword-theme");
-    document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
-  }, []);
+  const close = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) menuButtonRef.current?.focus();
+  }, [setOpen]);
 
+  // Open sheet: lock background scroll, focus the close control, Escape closes.
+  // If the viewport grows into the persistent-sidebar layout, close it too.
   useEffect(() => {
-    if (!sidebarOpen) {
+    if (!open) {
       delete document.body.dataset.drawerOpen;
       return;
     }
-
     document.body.dataset.drawerOpen = "true";
-    window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    closeButtonRef.current?.focus();
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setSidebarOpen(false);
-        window.setTimeout(() => menuButtonRef.current?.focus(), 0);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close(true);
+    };
+    const wide = window.matchMedia("(min-width: 900px)");
+    const onWide = () => wide.matches && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    wide.addEventListener("change", onWide);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onWide);
       delete document.body.dataset.drawerOpen;
     };
-  }, [sidebarOpen]);
+  }, [open, close, setOpen]);
 
-  function closeSidebar({ restoreFocus = false } = {}) {
-    setSidebarOpen(false);
-    if (restoreFocus) {
-      window.setTimeout(() => menuButtonRef.current?.focus(), 0);
-    }
-  }
-
-  function toggleTheme() {
-    const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-    const next = current === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("windsword-theme", next);
-  }
-
-  function NavLink({ item }: { item: { label: string; href: string; icon: string } }) {
-    const active = pathname === item.href;
+  function NavLink({ item }: { item: NavItem }) {
+    const active = pathname === item.href || pathname === `${item.href}/`;
     return (
       <Link
         className={active ? "nav-link active" : "nav-link"}
         href={item.href}
         aria-current={active ? "page" : undefined}
-        onClick={() => closeSidebar()}
       >
         <Icon name={item.icon} />
         <span>{item.label}</span>
@@ -121,114 +85,105 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  const isChat = pathname === "/chat" || pathname === "/chat/";
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to workspace</a>
 
       <header className="topbar">
-        <div className="topbar-left">
-          <button
-            ref={menuButtonRef}
-            className="icon-button mobile-menu"
-            onClick={() => setSidebarOpen((value) => !value)}
-            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={sidebarOpen}
-            aria-controls="windsword-navigation"
-            aria-haspopup="true"
-          >
-            <Icon name={sidebarOpen ? "close" : "menu"} />
-          </button>
+        <button
+          ref={menuButtonRef}
+          type="button"
+          className="icon-button menu-button"
+          onClick={() => setOpen((value) => !value)}
+          aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={open}
+          aria-controls="windsword-navigation"
+        >
+          <Icon name={open ? "close" : "menu"} />
+        </button>
 
-          <Link className="brand" href="/" aria-label="WindSwordAI home" onClick={() => closeSidebar()}>
-            <WindSwordMark className="brand-sword" variant="line" />
-            <span className="brand-word">WindSwordAI</span>
-          </Link>
-        </div>
+        <Link className="brand" href="/" aria-label="WindSwordAI home">
+          <BrandMark variant="clean-sm" className="brand__mark" />
+          <span className="brand__word">WindSwordAI</span>
+        </Link>
 
-        <div className="topbar-actions">
-          <span className="secure-pill" title="Local Secure"><i /> <span>Local Secure</span></span>
-          <button
-            className="icon-button theme-button theme-button--topbar"
-            onClick={toggleTheme}
-            aria-label="Change appearance: toggle light or dark theme"
-            title="Change appearance"
-          >
-            <ThemeIcons />
-          </button>
-        </div>
+        <div className="topbar__spacer" />
+        <span className="secure-pill"><i aria-hidden="true" /> Local Secure</span>
+        <ThemeButton />
       </header>
 
       <div className="shell-body">
         <aside
           id="windsword-navigation"
-          className={sidebarOpen ? "sidebar open" : "sidebar"}
+          className={open ? "sidebar is-open" : "sidebar"}
           aria-label="WindSwordAI navigation"
-          aria-hidden={!sidebarOpen && undefined}
+          onClick={(event) => {
+            // Any link tap closes the sheet, including a link to the current page.
+            if ((event.target as HTMLElement).closest("a")) setOpen(false);
+          }}
         >
-          <div className="mobile-drawer-header">
-            <div className="mobile-drawer-brand">
-              <WindSwordMark className="drawer-sword" variant="line" />
+          <div className="sidebar__head">
+            <div className="sidebar__brand">
+              <BrandMark variant="clean-sm" className="brand__mark" />
               <div>
                 <strong>WindSwordAI</strong>
-                <span><i /> Local Secure</span>
+                <span><i aria-hidden="true" /> Local Secure</span>
               </div>
             </div>
             <button
               ref={closeButtonRef}
-              className="icon-button drawer-close"
-              onClick={() => closeSidebar({ restoreFocus: true })}
+              type="button"
+              className="icon-button sidebar__close"
+              onClick={() => close(true)}
               aria-label="Close navigation"
             >
               <Icon name="close" />
             </button>
           </div>
 
-          <div className="mobile-drawer-theme">
-            <button className="drawer-theme-button" onClick={toggleTheme} aria-label="Change appearance: toggle light or dark theme">
-              <span className="drawer-theme-copy">
-                <strong>Appearance</strong>
-                <small>
-                  <span className="theme-copy theme-copy--dark">Dark mode</span>
-                  <span className="theme-copy theme-copy--light">Light mode</span>
-                </small>
-              </span>
-              <ThemeIcons />
-            </button>
-          </div>
-
-          <div className="sidebar-main">
-            <Link className="new-chat" href="/chat" onClick={() => closeSidebar()}>
-              <span className="new-chat-plus">+</span>
+          <div className="sidebar__scroll">
+            <Link className="new-chat" href="/chat">
+              <Icon name="plus" size={18} />
               <span>New chat</span>
             </Link>
 
-            <nav className="primary-nav" aria-label="Primary navigation">
+            <nav className="nav-group" aria-label="Primary">
               {primaryNav.map((item) => <NavLink key={item.href} item={item} />)}
             </nav>
 
-            <div className="history-block">
-              <p>Recent</p>
+            <div className="history">
+              <p className="section-label">Recent</p>
               {recentChats.map((chat) => (
-                <Link href="/chat" key={chat} className="history-link" onClick={() => closeSidebar()}>{chat}</Link>
+                <Link href="/chat" key={chat} className="history__link">{chat}</Link>
               ))}
             </div>
           </div>
 
-          <nav className="utility-nav" aria-label="Utility navigation">
-            {utilityNav.map((item) => <NavLink key={item.href} item={item} />)}
-            <div className="demo-label"><span>DEMO</span> Synthetic data only</div>
-          </nav>
+          <div className="sidebar__foot">
+            <div className="sidebar__appearance">
+              <p className="section-label">Appearance</p>
+              <ThemeSegment />
+            </div>
+            <nav className="nav-group" aria-label="Utility">
+              {utilityNav.map((item) => <NavLink key={item.href} item={item} />)}
+            </nav>
+            <p className="demo-label"><span>DEMO</span> Synthetic data only</p>
+          </div>
         </aside>
 
-        {sidebarOpen && (
+        {open && (
           <button
-            className="sidebar-scrim"
-            onClick={() => closeSidebar({ restoreFocus: true })}
+            type="button"
+            className="scrim"
+            onClick={() => close(true)}
             aria-label="Close navigation overlay"
+            tabIndex={-1}
           />
         )}
 
-        <main id="main-content" tabIndex={-1} className={pathname === "/chat" ? "content chat-content" : "content"}>
+        <main id="main-content" tabIndex={-1} className={isChat ? "content content--chat" : "content"}>
           {children}
         </main>
       </div>

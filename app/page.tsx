@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { WindSwordMark } from "@/components/WindSwordMark";
+import { BrandMark } from "@/components/BrandMark";
 import { demoWorkspace } from "@/lib/demo";
 
 const experiences = [
@@ -50,14 +50,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="home-sword-stage" aria-label="WindSwordAI visual identity">
-          <div className="home-sword-halo home-sword-halo--outer" aria-hidden="true" />
-          <div className="home-sword-halo home-sword-halo--inner" aria-hidden="true" />
-          <WindSwordMark className="home-sword-mark" variant="shaded" title="WindSwordAI winged sword mark" />
-          <div className="home-sword-caption">
-            <span>Secure Local</span>
-            <strong>WindSword</strong>
-          </div>
+        <div className="home-stage" role="img" aria-label="WindSwordAI winged sword">
+          <div className="home-stage__glow" aria-hidden="true" />
+          <BrandMark variant="color" className="home-stage__color" />
         </div>
       </div>
 

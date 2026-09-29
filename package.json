@@ -12,7 +12,8 @@
     "review:manifest": "node scripts/create-review-manifest.mjs",
     "review:screenshots": "node scripts/capture-review.mjs",
     "security:fixtures": "node scripts/check-sensitive-fixtures.mjs",
-    "review:responsive": "node scripts/responsive-audit.mjs"
+    "review:responsive": "node scripts/responsive-audit.mjs",
+    "brand:build": "node scripts/build-brand-assets.mjs"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -26,6 +27,7 @@
     "@types/react-dom": "^19.1.9",
     "eslint": "^9.35.0",
     "eslint-config-next": "16.3.5",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.2"
   }
 }

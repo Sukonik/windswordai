@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { WindSwordMark } from "@/components/WindSwordMark";
+import { asset } from "@/lib/assets";
 
 const principles = [
   {
@@ -39,17 +39,18 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="about-logo-stage" aria-label="WindSwordAI full-color winged sword mark">
-          <div className="about-aura" aria-hidden="true" />
-          <div className="about-wind about-wind--one" aria-hidden="true" />
-          <div className="about-wind about-wind--two" aria-hidden="true" />
-          <div className="about-wind about-wind--three" aria-hidden="true" />
-          <div className="about-light-sweep" aria-hidden="true" />
-          <WindSwordMark className="about-logo" variant="color" title="WindSwordAI winged sword mark" />
-          <div className="about-logo-state" aria-hidden="true">
-            <span>Blue steel</span>
-            <strong>WindSwordAI</strong>
-          </div>
+        <div className="about-stage" role="img" aria-label="WindSwordAI blue-steel winged sword">
+          <div className="about-stage__halo" aria-hidden="true" />
+          <span className="about-stage__streak about-stage__streak--a" aria-hidden="true" />
+          <span className="about-stage__streak about-stage__streak--b" aria-hidden="true" />
+          {/* Same-canvas layers of the approved art; they register exactly over the base. */}
+          {/* eslint-disable @next/next/no-img-element */}
+          <img className="about-layer about-layer--wind" src={asset("/brand/layer-wind-560.webp")} srcSet={`${asset("/brand/layer-wind-560.webp")} 560w, ${asset("/brand/layer-wind.webp")} 960w`} sizes="(min-width: 900px) 560px, 80vw" alt="" aria-hidden="true" width={960} height={960} loading="lazy" decoding="async" />
+          <img className="about-layer about-layer--aura" src={asset("/brand/layer-aura-560.webp")} srcSet={`${asset("/brand/layer-aura-560.webp")} 560w, ${asset("/brand/layer-aura.webp")} 960w`} sizes="(min-width: 900px) 560px, 80vw" alt="" aria-hidden="true" width={960} height={960} decoding="async" />
+          <img className="about-layer about-layer--base" src={asset("/brand/layer-base-560.webp")} srcSet={`${asset("/brand/layer-base-560.webp")} 560w, ${asset("/brand/layer-base.webp")} 960w`} sizes="(min-width: 900px) 560px, 80vw" alt="" aria-hidden="true" width={960} height={960} decoding="async" />
+          <img className="about-layer about-layer--beam" src={asset("/brand/layer-beam-560.webp")} srcSet={`${asset("/brand/layer-beam-560.webp")} 560w, ${asset("/brand/layer-beam.webp")} 960w`} sizes="(min-width: 900px) 560px, 80vw" alt="" aria-hidden="true" width={960} height={960} loading="lazy" decoding="async" />
+          <img className="about-layer about-layer--gem" src={asset("/brand/layer-gem-560.webp")} srcSet={`${asset("/brand/layer-gem-560.webp")} 560w, ${asset("/brand/layer-gem.webp")} 960w`} sizes="(min-width: 900px) 560px, 80vw" alt="" aria-hidden="true" width={960} height={960} loading="lazy" decoding="async" />
+          {/* eslint-enable @next/next/no-img-element */}
         </div>
       </div>
 
