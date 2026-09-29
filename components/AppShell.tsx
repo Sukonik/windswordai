@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { useGateway } from "@/components/GatewayProvider";
 import { Icon } from "@/components/Icon";
 import { ThemeButton, ThemeSegment } from "@/components/ThemeToggle";
 
@@ -49,6 +50,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
   }, [pathname]);
   const router = useRouter();
+  const { mode } = useGateway();
+  const modeLabel = mode === "secure_local" ? "Secure Local" : "Standard";
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const isMac = useSyncExternalStore(noopSubscribe, isMacSnapshot, () => false);
@@ -156,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
 
         <div className="topbar__spacer" />
-        <span className="secure-pill"><i aria-hidden="true" /> Local Secure</span>
+        <span className="secure-pill" data-mode={mode}><i aria-hidden="true" /> {modeLabel}</span>
         <ThemeButton />
       </header>
 
@@ -178,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <BrandMark variant="sapphire-sm" className="brand__mark" />
               <div>
                 <strong>WindSwordAI</strong>
-                <span><i aria-hidden="true" /> Local Secure</span>
+                <span><i aria-hidden="true" /> {modeLabel}</span>
               </div>
             </div>
             <button
