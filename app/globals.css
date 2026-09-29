@@ -75,7 +75,11 @@ body {
 body[data-drawer-open="true"] { overflow: hidden; }
 
 button, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; }
+button {
+  cursor: pointer; -webkit-appearance: none; appearance: none;
+  margin: 0; padding: 0; touch-action: manipulation; -webkit-user-select: none; user-select: none;
+}
+textarea { -webkit-appearance: none; appearance: none; border-radius: 0; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
@@ -110,13 +114,13 @@ main:focus { outline: none; }
 
 /* -- Buttons --------------------------------------------------------------- */
 .icon-button {
-  display: inline-grid; place-items: center;
-  width: 44px; height: 44px; flex: none;
+  display: inline-grid; place-items: center; flex: none;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; aspect-ratio: 1; padding: 0;
   border: 1px solid var(--line); border-radius: 12px;
   background: var(--surface-2);
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.icon-button:hover { background: var(--surface-3); border-color: var(--line-strong); }
+@media (hover: hover) { .icon-button:hover { background: var(--surface-3); border-color: var(--line-strong); } }
 .icon-button:active { transform: scale(.94); }
 
 .primary-link, .secondary-link {
@@ -126,10 +130,12 @@ main:focus { outline: none; }
   transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 .primary-link { background: var(--blue); color: var(--on-blue); }
-.primary-link:hover { background: var(--blue-hot); }
+@media (hover: hover) { .primary-link:hover { background: var(--blue-hot); } }
 .secondary-link { border: 1px solid var(--line-strong); background: var(--surface-2); }
-.secondary-link:hover { background: var(--surface-3); }
+@media (hover: hover) { .secondary-link:hover { background: var(--surface-3); } }
 .primary-link:active, .secondary-link:active { transform: scale(.97); }
+.primary-link:active { background: var(--blue-hot); }
+.secondary-link:active, .icon-button:active, .nav-link:active { background: var(--surface-3); }
 
 /* -- Topbar ---------------------------------------------------------------- */
 .app-shell { min-height: 100dvh; }
@@ -163,6 +169,7 @@ main:focus { outline: none; }
   display: flex; flex-direction: column;
   background: var(--bg);
   padding: env(safe-area-inset-top) 0 0 env(safe-area-inset-left);
+  overflow-y: auto; overscroll-behavior: contain;
   transform: translateX(-100%);
   visibility: hidden; /* closed sheet is not focusable */
   transition: transform var(--t-menu) var(--ease), visibility 0s linear var(--t-menu);
@@ -173,6 +180,7 @@ main:focus { outline: none; }
 }
 .sidebar__head {
   display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 1; flex: none; background: var(--bg);
   min-height: var(--topbar-h); padding: 6px var(--gutter) 6px 20px;
   border-bottom: 1px solid var(--line);
 }
@@ -181,9 +189,9 @@ main:focus { outline: none; }
 .sidebar__brand strong { display: block; font-size: 17px; letter-spacing: -.02em; line-height: 1.2; }
 .sidebar__brand span { display: flex; }
 
-.sidebar__scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px var(--gutter) 8px; }
+.sidebar__scroll { flex: 0 0 auto; padding: 14px var(--gutter) 8px; }
 .sidebar__foot {
-  padding: 12px var(--gutter) calc(14px + env(safe-area-inset-bottom));
+  margin-top: auto; padding: 12px var(--gutter) calc(14px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   background: var(--bg);
 }
@@ -192,23 +200,23 @@ main:focus { outline: none; }
 
 .new-chat {
   display: flex; align-items: center; gap: 12px;
-  min-height: 52px; padding: 0 16px; margin-bottom: 12px;
+  min-height: 48px; padding: 0 16px; margin-bottom: 10px;
   border: 1px solid var(--line-strong); border-radius: 14px;
   background: var(--surface-2); font-weight: 650;
   transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.new-chat:hover { background: var(--surface-3); }
+@media (hover: hover) { .new-chat:hover { background: var(--surface-3); } }
 .new-chat:active { transform: scale(.98); }
 .new-chat svg { color: var(--blue); }
 
 .nav-group { display: grid; gap: 4px; }
 .nav-link {
   display: flex; align-items: center; gap: 14px;
-  min-height: 52px; padding: 0 14px; border-radius: 12px;
+  min-height: 48px; padding: 0 14px; border-radius: 12px;
   font-size: 17px; font-weight: 560; color: var(--text-soft);
   transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.nav-link:hover { background: var(--surface-2); }
+@media (hover: hover) { .nav-link:hover { background: var(--surface-2); } }
 .nav-link:active { background: var(--surface-3); }
 .nav-link.active {
   color: var(--text); background: color-mix(in srgb, var(--blue) 14%, var(--surface));
@@ -216,13 +224,13 @@ main:focus { outline: none; }
 }
 .nav-link.active svg { color: var(--blue); }
 
-.history { margin-top: 20px; }
+.history { margin-top: 16px; }
 .history__link {
   display: block; min-height: 44px; padding: 10px 14px; border-radius: 10px;
   color: var(--muted); font-size: 15px; line-height: 24px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.history__link:hover { background: var(--surface-2); color: var(--text-soft); }
+@media (hover: hover) { .history__link:hover { background: var(--surface-2); color: var(--text-soft); } }
 
 .sidebar__appearance { margin-bottom: 12px; }
 .theme-segment {
@@ -285,7 +293,7 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
   transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
-.experience-card:hover { border-color: var(--line-strong); background: var(--surface-2); }
+@media (hover: hover) { .experience-card:hover { border-color: var(--line-strong); background: var(--surface-2); } }
 .experience-card:active { transform: scale(.985); }
 .experience-card__top { display: flex; gap: 10px; align-items: baseline; margin-bottom: 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .experience-card__top span { color: var(--blue); }
@@ -374,16 +382,16 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
 .empty-kicker { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--blue); }
 .empty-chat h1 { font-size: clamp(28px, 8vw, 40px); }
 .empty-copy { color: var(--muted); font-size: 15px; max-width: 32rem; }
-.suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-top: 12px; }
+.suggestion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 420px; margin-top: 12px; }
 .suggestion-grid button {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px; text-align: left;
-  min-height: 56px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 12px;
-  background: var(--surface); font-size: 14px; font-weight: 560;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: 22px;
+  background: var(--surface); font-size: 14px; font-weight: 560; line-height: 1.2; text-align: center; text-wrap: balance;
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.suggestion-grid button:hover { background: var(--surface-2); border-color: var(--line-strong); }
-.suggestion-grid button:active { transform: scale(.97); }
-.suggestion-grid span { color: var(--blue); }
+@media (hover: hover) { .suggestion-grid button:hover { background: var(--surface-2); border-color: var(--blue); } }
+.suggestion-grid button:active { transform: scale(.96); background: var(--surface-3); }
+.suggestion-grid span { display: none; color: var(--blue); }
 
 .message-list { display: grid; gap: 18px; max-width: 760px; margin: 0 auto; }
 .message { display: flex; gap: 12px; }
@@ -426,12 +434,13 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
 .composer-mode i { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
 
 .composer-action, .send-button {
-  display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px;
+  display: inline-grid; place-items: center; flex: none;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; aspect-ratio: 1; padding: 0;
   border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2);
   font-size: 22px; line-height: 1;
   transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
-.composer-action:hover { background: var(--surface-3); }
+@media (hover: hover) { .composer-action:hover { background: var(--surface-3); } }
 .composer-action:active, .send-button:active:not(:disabled) { transform: scale(.92); }
 .composer-action.plus.active { background: var(--surface-3); border-color: var(--blue); }
 .composer-action.listening { border-color: var(--blue); }
@@ -462,7 +471,7 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 10px;
   border: 0; border-radius: 10px; background: transparent; text-align: left;
 }
-.add-menu button:hover { background: var(--surface-2); }
+@media (hover: hover) { .add-menu button:hover { background: var(--surface-2); } }
 .add-menu strong, .add-menu small { display: block; }
 .add-menu small { color: var(--muted); font-size: 12px; }
 .action-symbol { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--surface-3); color: var(--blue); }
@@ -474,6 +483,9 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
 .attachment-chip b { color: var(--blue); }
 .attachment-chip button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; font-size: 18px; }
 .composer-caption { margin-top: 6px; text-align: center; font-size: 11px; color: var(--muted); }
+
+/* Browser toolbars leave ~600px on iPhone: drop the paragraph before the actions. */
+@media (max-height: 700px) { .empty-copy { display: none; } .empty-chat__mark { height: 72px; } }
 
 /* Short phones (landscape or keyboard open): reclaim vertical space. */
 @media (max-height: 520px) {
@@ -489,8 +501,8 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
   .sidebar { width: 380px; border-right: 1px solid var(--line); box-shadow: 24px 0 60px var(--shadow); }
   .hero-actions { display: flex; flex-wrap: wrap; }
   .home-experience-grid, .about-principles { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
-  .suggestion-grid { grid-template-columns: repeat(4, 1fr); }
-  .suggestion-grid button { min-height: 76px; align-items: flex-start; flex-direction: column; justify-content: space-between; }
+  .suggestion-grid span { display: inline; }
+  .suggestion-grid { grid-template-columns: repeat(4, auto); justify-content: center; max-width: none; }
   .topbar { background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px) saturate(140%); }
   .about-layer--wind { display: block; animation: about-drift 9s ease-in-out infinite; will-change: transform, opacity; }
   .about-layer--beam { display: block; opacity: 0; animation: about-sweep 7s ease-in-out infinite; }
@@ -512,9 +524,9 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
     position: sticky; top: calc(var(--topbar-h) + env(safe-area-inset-top));
     width: auto; height: calc(100dvh - var(--topbar-h) - env(safe-area-inset-top));
     padding: 0; transform: none; visibility: visible; box-shadow: none; background: transparent;
-    transition: none;
+    overflow: visible; transition: none;
   }
-  .sidebar__scroll { padding-top: 16px; }
+  .sidebar__scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-top: 16px; }
   .sidebar__foot { background: transparent; padding-bottom: 14px; }
   .nav-link { min-height: 42px; font-size: 15px; gap: 12px; }
   .new-chat { min-height: 44px; }

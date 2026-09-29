@@ -62,6 +62,15 @@ for (const viewport of viewports) {
           const r = document.querySelector(sel)?.getBoundingClientRect();
           return { sel, w: Math.round(r?.width ?? 0), h: Math.round(r?.height ?? 0) };
         }));
+      const shapes = await page.evaluate(() => ({
+        circles: [".composer-action.plus", ".composer-action.voice", ".send-button", ".menu-button", ".theme-button"].map((sel) => {
+          const r = document.querySelector(sel)?.getBoundingClientRect();
+          return { sel, w: r?.width ?? 0, h: r?.height ?? 0 };
+        }),
+        chips: [...document.querySelectorAll(".suggestion-grid button")].map((b) => Math.round(b.getBoundingClientRect().height)),
+      }));
+      add({ ...base, check: "round-controls-are-not-squashed", ok: shapes.circles.every((c) => Math.abs(c.w - c.h) < 0.6), shapes: shapes.circles });
+      add({ ...base, check: "suggestion-chips-uniform-and-44", ok: shapes.chips.length === 0 || (shapes.chips.every((h) => h >= 44) && new Set(shapes.chips).size === 1), chips: shapes.chips });
       add({ ...base, check: "composer-touch-targets-44", ok: composerTargets.every((t) => t.w >= 44 && t.h >= 44), composerTargets });
     }
 
@@ -93,6 +102,8 @@ for (const viewport of viewports) {
           const b = e.getBoundingClientRect();
           return { text: e.textContent.trim(), h: Math.round(b.height), clipped: e.scrollWidth > e.clientWidth + 1 };
         });
+        // The sheet scrolls as one on short phones; the footer must be reachable at the end.
+        nav.scrollTop = nav.scrollHeight;
         const foot = nav.querySelector(".sidebar__foot").getBoundingClientRect();
         return {
           left: r.left, right: r.right, vw: window.innerWidth, vh: window.innerHeight,

@@ -18,9 +18,9 @@ const actions = [
 
 const suggestions = [
   "Review a contract",
-  "Compare two documents",
-  "Build a case timeline",
-  "Summarize a matter",
+  "Compare documents",
+  "Case timeline",
+  "Summarize matter",
 ];
 
 export function ChatExperience() {
@@ -125,7 +125,7 @@ export function ChatExperience() {
             </p>
             <div className="suggestion-grid">
               {suggestions.map((suggestion) => (
-                <button key={suggestion} onClick={() => setText(suggestion)}>{suggestion}<span>↗</span></button>
+                <button key={suggestion} onClick={() => { setText(suggestion); textareaRef.current?.focus(); }}>{suggestion}<span aria-hidden="true">↗</span></button>
               ))}
             </div>
           </div>
