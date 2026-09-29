@@ -76,3 +76,6 @@ Desktop.ini
 .temp/
 tmp/
 temp/
+
+# Gateway local state (encrypted vault, connections, audit log)
+/.windsword/

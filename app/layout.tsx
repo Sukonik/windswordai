@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { asset } from "@/lib/assets";
 import { AppShell } from "@/components/AppShell";
+import { GatewayProvider } from "@/components/GatewayProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -58,7 +59,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <GatewayProvider>
+          <AppShell>{children}</AppShell>
+        </GatewayProvider>
       </body>
     </html>
   );

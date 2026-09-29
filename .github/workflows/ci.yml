@@ -33,6 +33,11 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Provider policy test output (review artifact)
+        run: |
+          mkdir -p review
+          node --test --test-reporter=spec tests/gateway-policy.test.mjs | tee review/provider-policy-tests.txt
+
       - name: Validate synthetic fixtures
         run: npm run security:fixtures
 
@@ -58,6 +63,7 @@ jobs:
           done
           npm run review:responsive
           npm run review:screenshots
+          npm run review:gateway
 
       - name: Upload review artifact
         uses: actions/upload-artifact@v4

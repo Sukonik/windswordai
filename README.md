@@ -320,3 +320,6 @@ See [LICENSE](LICENSE).
 WindSwordAI is under active development and should not currently be treated as a certified legal-security or compliance product.
 
 References to SOC 2, enterprise legal security practices, local-only processing, or comparable controls describe design goals unless and until those controls are implemented, tested, documented, and independently assessed.
+## Provider gateway (PR 03)
+
+Chat runs through a provider-neutral gateway with a single policy gate. See [`docs/PR03_GATEWAY.md`](docs/PR03_GATEWAY.md). Quick start: `npm run start:local`, then Settings → AI Connections.

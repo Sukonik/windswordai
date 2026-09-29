@@ -204,7 +204,7 @@ for (const viewport of [viewports.find((v) => v.name === "390x844"), { name: "39
   const box = page.getByLabel("Message WindSwordAI");
   const dist = () => page.evaluate(() => { const f = document.querySelector(".conversation"); return f.scrollHeight - f.scrollTop - f.clientHeight; });
   const send = async (text) => { await box.fill(text); await page.getByRole("button", { name: "Send message" }).click(); };
-  const waitReply = (n) => page.waitForFunction((count) => document.querySelectorAll(".message.assistant:not(.processing-message)").length >= count, n, { timeout: 5000 });
+  const waitReply = (n) => page.waitForFunction((count) => document.querySelectorAll(".message.assistant").length >= count && ![...document.querySelectorAll(".reply__status")].some((e) => e.textContent.includes("Streaming")), n, { timeout: 15000 });
 
   // Send until the feed actually overflows (tall viewports need more messages), minimum 4.
   let sent = 0;
@@ -234,7 +234,9 @@ for (const viewport of [viewports.find((v) => v.name === "390x844"), { name: "39
   const cue = await page.getByRole("button", { name: /1 new reply/ }).isVisible();
   add({ ...base, check: "reply-while-reading-history-raises-cue-not-scroll", ok: cue && (await dist()) > 80, cue });
   await page.getByRole("button", { name: /new repl/ }).click();
-  await page.waitForTimeout(600);
+  // Smooth scrolling over a long feed can take >600ms; wait for it to settle rather than guessing.
+  await page.waitForFunction(() => { const f = document.querySelector(".conversation"); return f.scrollHeight - f.scrollTop - f.clientHeight < 80; }, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(150);
   add({ ...base, check: "jump-button-returns-to-latest", ok: (await dist()) < 80 && !(await page.getByRole("button", { name: /Jump to latest|new repl/ }).isVisible()) });
 
   await box.fill("line one\nline two\nline three\nline four\nline five");

@@ -30,6 +30,27 @@ const paths: Record<string, React.ReactNode> = {
   ),
   moon: <path d="M20 15.4A8 8 0 0 1 8.6 4 8.5 8.5 0 1 0 20 15.4Z" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  chevron: <path d="m6 9 6 6 6-6" />,
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </>
+  ),
+  stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+  retry: <path d="M4 12a8 8 0 1 1 2.6 5.9M4 19v-5h5" />,
+  columns: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M12 4v16" />
+    </>
+  ),
   search: (
     <>
       <circle cx="11" cy="11" r="6.5" />

@@ -2,6 +2,7 @@
   "name": "windswordai",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,7 +14,12 @@
     "review:screenshots": "node scripts/capture-review.mjs",
     "security:fixtures": "node scripts/check-sensitive-fixtures.mjs",
     "review:responsive": "node scripts/responsive-audit.mjs",
-    "brand:build": "node scripts/build-brand-assets.mjs"
+    "brand:build": "node scripts/build-brand-assets.mjs",
+    "gateway": "node gateway/server.ts",
+    "build:local": "NEXT_PUBLIC_DEMO_MODE=false NEXT_PUBLIC_GATEWAY_SAME_ORIGIN=true next build",
+    "start:local": "npm run build:local && node gateway/server.ts",
+    "review:gateway": "node scripts/gateway-e2e.mjs",
+    "fake-providers": "node scripts/fake-providers.mjs 9911"
   },
   "dependencies": {
     "next": "16.3.5",

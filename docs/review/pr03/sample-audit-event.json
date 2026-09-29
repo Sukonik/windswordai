@@ -1,0 +1,19 @@
+{
+  "ts": "2026-09-29T19:18:01.604Z",
+  "type": "chat.end",
+  "sessionId": "ses_htdqe9l66us3",
+  "providerId": "claude",
+  "model": "claude-fake-sonnet",
+  "mode": "standard",
+  "contentClass": "general",
+  "counts": {
+    "messages": 3,
+    "promptChars": 356,
+    "attachments": 0,
+    "replyChars": 161
+  },
+  "usage": {
+    "inputTokens": 21,
+    "outputTokens": 24
+  }
+}
