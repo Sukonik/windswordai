@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { Icon } from "@/components/Icon";
 
 type Message = {
   id: number;
@@ -34,6 +35,96 @@ export function ChatExperience() {
   const nextId = useRef(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const plusWrapRef = useRef<HTMLDivElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+
+  // Feed location: are we reading the latest, or scrolled back in history?
+  const pinned = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
+  const [unread, setUnread] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  const scrollToEnd = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const el = feedRef.current;
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: reduce ? "auto" : behavior });
+  }, []);
+
+  const onFeedScroll = useCallback(() => {
+    const el = feedRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+    pinned.current = near;
+    setAtBottom(near);
+    setScrolled(el.scrollTop > 8);
+    if (near) setUnread(0);
+  }, []);
+
+  // Stay pinned to the latest message when the feed's own size changes:
+  // composer grows, keyboard opens, device rotates, or a reply streams in.
+  useEffect(() => {
+    const feed = feedRef.current;
+    const list = listRef.current;
+    if (!feed) return;
+    const observer = new ResizeObserver(() => {
+      if (pinned.current) feed.scrollTop = feed.scrollHeight;
+    });
+    observer.observe(feed);
+    if (list) observer.observe(list);
+    return () => observer.disconnect();
+  }, [messages.length]);
+
+  // New content: your own message always jumps to the end; a reply only follows
+  // if you were already at the end, otherwise it raises the "Jump to latest" cue.
+  const lastCount = useRef(0);
+  useEffect(() => {
+    if (messages.length <= lastCount.current) {
+      lastCount.current = messages.length;
+      return;
+    }
+    const latest = messages[messages.length - 1];
+    lastCount.current = messages.length;
+    if (latest.role === "user" || pinned.current) {
+      pinned.current = true;
+      requestAnimationFrame(() => scrollToEnd());
+    } else {
+      setUnread((count) => count + 1);
+    }
+  }, [messages, scrollToEnd]);
+
+  // The thinking indicator counts as "latest" when you are at the end.
+  useEffect(() => {
+    if (processing && pinned.current) requestAnimationFrame(() => scrollToEnd());
+  }, [processing, scrollToEnd]);
+
+  // Track the visible viewport (iOS Safari does not shrink the layout for the keyboard).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const apply = () => root.style.setProperty("--vvh", `${Math.round(vv.height)}px`);
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+      root.style.removeProperty("--vvh");
+    };
+  }, []);
+
+  // Keep the composer height available to the feed (bottom padding, jump button offset).
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    const apply = () => el.parentElement?.style.setProperty("--composer-h", `${el.offsetHeight}px`);
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Grow the composer with its content (capped in CSS).
   useEffect(() => {
@@ -97,7 +188,7 @@ export function ChatExperience() {
 
   return (
     <section className="chat-stage">
-      <div className="chat-toolbar">
+      <div className={scrolled ? "chat-toolbar is-scrolled" : "chat-toolbar"}>
         <label className="mode-button" aria-label="Reasoning mode and effort">
           <span className="mode-orb" aria-hidden="true" />
           <span>WindSword</span>
@@ -113,7 +204,8 @@ export function ChatExperience() {
         <span className="workspace-context">No matter selected</span>
       </div>
 
-      <div className="conversation" aria-live="polite">
+      <div className="feed">
+      <div className="conversation" ref={feedRef} onScroll={onFeedScroll} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation">
         {messages.length === 0 ? (
           <div className="empty-chat">
             <BrandMark variant="shaded" className="empty-chat__mark" />
@@ -130,7 +222,7 @@ export function ChatExperience() {
             </div>
           </div>
         ) : (
-          <div className="message-list">
+          <div className="message-list" ref={listRef}>
             {messages.map((message) => (
               <article key={message.id} className={`message ${message.role}`}>
                 <div className="message-avatar">{message.role === "assistant" ? "W" : "N"}</div>
@@ -153,7 +245,15 @@ export function ChatExperience() {
         )}
       </div>
 
-      <div className="composer-wrap">
+        {messages.length > 0 && !atBottom && (
+          <button type="button" className="jump-latest" onClick={() => { pinned.current = true; scrollToEnd(); }}>
+            <Icon name="arrow-down" size={16} />
+            <span>{unread > 0 ? `${unread} new ${unread === 1 ? "reply" : "replies"}` : "Jump to latest"}</span>
+          </button>
+        )}
+      </div>
+
+      <div className="composer-wrap" ref={composerRef}>
         <form className="composer" onSubmit={submit}>
           {attachments.length > 0 && (
             <div className="attachment-tray">
@@ -179,6 +279,9 @@ export function ChatExperience() {
             rows={1}
             placeholder="Ask WindSwordAI"
             aria-label="Message WindSwordAI"
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCapitalize="sentences"
           />
 
           <div className="composer-controls">
