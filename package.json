@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,9 +18,9 @@
     "security:fixtures": "node scripts/check-sensitive-fixtures.mjs",
     "review:responsive": "node scripts/responsive-audit.mjs",
     "brand:build": "node scripts/build-brand-assets.mjs",
-    "gateway": "node gateway/server.ts",
-    "build:local": "NEXT_PUBLIC_DEMO_MODE=false NEXT_PUBLIC_GATEWAY_SAME_ORIGIN=true next build",
-    "start:local": "npm run build:local && node gateway/server.ts",
+    "gateway": "node scripts/run-gateway.mjs",
+    "build:local": "node scripts/build-local.mjs",
+    "start:local": "node scripts/build-local.mjs && node scripts/run-gateway.mjs",
     "review:gateway": "node scripts/gateway-e2e.mjs",
     "fake-providers": "node scripts/fake-providers.mjs 9911"
   },

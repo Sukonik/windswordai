@@ -32,9 +32,18 @@ npm run start:local          # builds the UI and starts the gateway on http://12
 
 - Default mode is **Secure Local**: cloud providers are visibly disabled. Switch to **Standard** (toolbar pill or Settings) to use connected cloud providers for general prompts.
 - Ollama needs no account: start Ollama, open Settings, and its models appear.
-- Other devices on your network: `WINDSWORD_HOST=0.0.0.0 npm run gateway`. A random bearer token is generated and printed; enter it under Settings → Gateway. The server refuses to bind beyond loopback without one.
+- Other devices on your network (phone): build once with `npm run build:local`, then start with `WINDSWORD_HOST=0.0.0.0 npm run gateway` (PowerShell: `$env:WINDSWORD_HOST="0.0.0.0"; npm run gateway`). The gateway prints your LAN address(es) and a random bearer token. Open the LAN address on the phone, go to Settings → Gateway and enter the token. The server refuses to bind beyond loopback without one.
 - Public Pages site: stays a **synthetic demo**. It uses an in-browser mock provider through the same policy code and cannot connect accounts (a static site cannot hold secrets).
 - Try it with no keys: `npm run fake-providers` starts fake Anthropic/OpenAI-shaped upstreams; connect Claude with key `sk-fake-claude-000111` and base URL `http://127.0.0.1:9911`, OpenAI with `sk-fake-openai-000222` and base URL `http://127.0.0.1:9911/v1`.
+
+### Windows notes
+
+- Requires **Node 22 or newer** (`node -v`). The launcher checks this and explains if it is too old.
+- The npm scripts are cross-platform; no `VAR=value` prefixes are used, so they work in PowerShell and cmd.
+- Set environment variables in PowerShell with `$env:NAME="value"` (they last for that window). Example: `$env:ANTHROPIC_API_KEY="..."; npm run start:local`.
+- First LAN run: Windows Firewall may prompt for Node.js. Allow it on **Private** networks (port 8787).
+- File permissions (`0600`) are not enforced on Windows, so the auto-generated vault key file sits unprotected next to the encrypted vault. Set `WINDSWORD_VAULT_KEY` (32 random bytes, base64) in your environment to keep the key elsewhere. PowerShell: `$env:WINDSWORD_VAULT_KEY=[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])` (use a proper random source for anything beyond a personal test).
+- Ollama on Windows listens on `127.0.0.1:11434` by default, which is what the gateway probes.
 
 | Env var | Purpose |
 | --- | --- |

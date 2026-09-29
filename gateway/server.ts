@@ -1,6 +1,7 @@
 // Run: npm run gateway   (Node 22+, no dependencies)
 import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { join, resolve } from "node:path";
 import { AuditLog } from "./src/audit.ts";
 import { Gateway } from "./src/gateway.ts";
@@ -36,7 +37,15 @@ const origins = (env.WINDSWORD_ALLOWED_ORIGINS ?? "http://localhost:3000,http://
 const server = createHttpServer({ gateway, host, port, token, allowedOrigins: origins, staticDir: existsSync(staticDir) ? staticDir : undefined });
 server.listen(port, host, () => {
   console.log(`\nWindSwordAI gateway listening on http://${host}:${port}`);
+  if (host === "0.0.0.0" || host === "::") {
+    const lan = Object.values(networkInterfaces()).flat().filter((n) => n && n.family === "IPv4" && !n.internal).map((n) => `http://${n!.address}:${port}`);
+    console.log(`  on your network: ${lan.length ? lan.join("   ") : "(no LAN address found)"}   <- open this on your phone`);
+    console.log("  Windows may ask to allow Node.js through the firewall the first time: allow it on Private networks.");
+  }
   console.log(`  state dir : ${stateDir}  (encrypted vault, connections, audit.jsonl)`);
+  if (process.platform === "win32" && !env.WINDSWORD_VAULT_KEY) {
+    console.log("  note      : on Windows the vault key file is not permission-protected. For stronger protection set WINDSWORD_VAULT_KEY\n              (32 random bytes, base64) in your environment so the key is not stored next to the vault.");
+  }
   console.log(`  UI        : ${existsSync(staticDir) ? `served from ${staticDir}` : "not built (run `npm run build:local` first, or use `npm run dev`)"}`);
   console.log(`  token     : ${token ? token : "not required on loopback"}`);
   console.log(`  default mode is Secure Local: cloud providers stay blocked until you switch to Standard in the UI.\n`);
