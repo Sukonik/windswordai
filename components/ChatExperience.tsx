@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
-import { WindSwordMark } from "@/components/WindSwordMark";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { BrandMark } from "@/components/BrandMark";
 
 type Message = {
   id: number;
@@ -32,6 +32,33 @@ export function ChatExperience() {
   const [processing, setProcessing] = useState(false);
   const [listening, setListening] = useState(false);
   const nextId = useRef(1);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const plusWrapRef = useRef<HTMLDivElement>(null);
+
+  // Grow the composer with its content (capped in CSS).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
+
+  // Add menu: outside tap and Escape dismiss.
+  useEffect(() => {
+    if (!plusOpen) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!plusWrapRef.current?.contains(event.target as Node)) setPlusOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPlusOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [plusOpen]);
 
   const canSend = useMemo(() => text.trim().length > 0 || attachments.length > 0, [text, attachments]);
 
@@ -89,9 +116,7 @@ export function ChatExperience() {
       <div className="conversation" aria-live="polite">
         {messages.length === 0 ? (
           <div className="empty-chat">
-            <div className="wind-emblem" aria-hidden="true">
-              <WindSwordMark className="chat-sword-mark" variant="line" />
-            </div>
+            <BrandMark variant="shaded" className="empty-chat__mark" />
             <p className="empty-kicker">Local Secure · Demo Mode</p>
             <h1>What are we working on?</h1>
             <p className="empty-copy">
@@ -142,6 +167,7 @@ export function ChatExperience() {
           )}
 
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
@@ -157,7 +183,7 @@ export function ChatExperience() {
 
           <div className="composer-controls">
             <div className="composer-left">
-              <div className="plus-wrap">
+              <div className="plus-wrap" ref={plusWrapRef}>
                 <button
                   type="button"
                   className={plusOpen ? "composer-action plus active" : "composer-action plus"}
