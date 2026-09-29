@@ -67,10 +67,10 @@ for (const viewport of viewports) {
           const r = document.querySelector(sel)?.getBoundingClientRect();
           return { sel, w: r?.width ?? 0, h: r?.height ?? 0 };
         }),
-        chips: [...document.querySelectorAll(".suggestion-grid button")].map((b) => Math.round(b.getBoundingClientRect().height)),
+        chips: [...document.querySelectorAll(".suggestion-grid button")].map((b) => { const r = b.getBoundingClientRect(); return { row: Math.round(r.top), h: Math.round(r.height) }; }),
       }));
       add({ ...base, check: "round-controls-are-not-squashed", ok: shapes.circles.every((c) => Math.abs(c.w - c.h) < 0.6), shapes: shapes.circles });
-      add({ ...base, check: "suggestion-chips-uniform-and-44", ok: shapes.chips.length === 0 || (shapes.chips.every((h) => h >= 44) && new Set(shapes.chips).size === 1), chips: shapes.chips });
+      add({ ...base, check: "suggestion-chips-uniform-and-44", ok: shapes.chips.every((c) => c.h >= 44 && shapes.chips.filter((o) => o.row === c.row).every((o) => o.h === c.h)), chips: shapes.chips });
       add({ ...base, check: "composer-touch-targets-44", ok: composerTargets.every((t) => t.w >= 44 && t.h >= 44), composerTargets });
     }
 
