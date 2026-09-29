@@ -8,6 +8,7 @@ import type {
 } from "./types.ts";
 import { ProviderError } from "./types.ts";
 import { decide } from "./policy.ts";
+import type { OAuthManager, StoredTokens } from "./oauth.ts";
 
 export interface GatewayOptions {
   registry: ProviderRegistry;
@@ -20,6 +21,8 @@ export interface GatewayOptions {
   requestTimeoutMs?: number;
   /** Probe local runtimes (e.g. Ollama) when listing providers. Server only; never in the browser demo. */
   probeLocal?: boolean;
+  /** Delegated account linking (OAuth authorization code + PKCE). Server only. */
+  oauth?: OAuthManager;
 }
 
 export interface ConnectInput {
@@ -53,6 +56,8 @@ export class Gateway {
   private approved: ReadonlySet<string>;
   private timeoutMs: number;
   private probeLocal: boolean;
+  private oauth?: OAuthManager;
+  private refreshing = new Map<string, Promise<StoredTokens>>();
 
   constructor(opts: GatewayOptions) {
     this.registry = opts.registry;
@@ -63,6 +68,7 @@ export class Gateway {
     this.approved = opts.approvedForProtected ?? new Set();
     this.timeoutMs = opts.requestTimeoutMs ?? 120_000;
     this.probeLocal = opts.probeLocal ?? false;
+    this.oauth = opts.oauth;
   }
 
   private async isConnected(providerId: string): Promise<boolean> {
@@ -97,6 +103,7 @@ export class Gateway {
         models: liveModels ?? (conn?.models?.length ? conn.models : d.suggestedModels),
         eligibility,
         protectedEligibility,
+        oauth: { available: Boolean(this.oauth?.isConfigured(d.id)) },
       });
     }
     return views;
@@ -106,6 +113,7 @@ export class Gateway {
   async connect(providerId: string, input: ConnectInput): Promise<ProviderView> {
     const adapter = this.registry.get(providerId);
     if (!adapter) throw new ProviderError("bad_request", "Unknown provider.");
+    if (input.type === "oauth") throw new ProviderError("bad_request", "Account linking uses the authorization flow, not a direct connect call.");
     const d = adapter.descriptor;
     const method = d.authMethods.find((m) => m.type === input.type);
     if (!method || method.status !== "available") {
@@ -175,9 +183,73 @@ export class Gateway {
     return out;
   }
 
+  /** Start delegated account linking. Returns the provider's authorization URL for the browser to visit. */
+  beginOAuth(providerId: string, opts: { returnTo?: string; redirectBase: string }): string {
+    if (!this.oauth || !this.registry.get(providerId)) throw new ProviderError("bad_request", "Account linking is not available for that provider.");
+    return this.oauth.start(providerId, opts);
+  }
+
+  /**
+   * Finish account linking: validate state, exchange the code (PKCE), verify the tokens by probing models,
+   * then store them encrypted. Returns where to send the browser next.
+   */
+  async completeOAuth(providerId: string, params: { code?: string | null; state?: string | null; error?: string | null }): Promise<{ ok: boolean; returnTo?: string }> {
+    const adapter = this.registry.get(providerId);
+    if (!this.oauth || !adapter) throw new ProviderError("bad_request", "Account linking is not available for that provider.");
+    let returnTo: string | undefined;
+    try {
+      const done = await this.oauth.complete(providerId, params);
+      returnTo = done.returnTo;
+      const ctx: AdapterContext = { fetch: this.fetchImpl, baseUrl: done.baseUrl, credentialKind: "bearer", getSecret: async () => done.tokens.accessToken, signal: AbortSignal.timeout(20_000) };
+      const models = await adapter.listModels(ctx);
+      const prev = await this.connections.get(providerId);
+      if (prev?.secretRef) await this.secrets.delete(prev.secretRef);
+      const secretRef = await this.secrets.put(JSON.stringify(done.tokens));
+      await this.connections.set({ providerId, type: "oauth", baseUrl: done.baseUrl, secretRef, models: models.length ? models : adapter.descriptor.suggestedModels, connectedAt: new Date().toISOString() });
+      this.audit.record({ type: "connection.added", providerId, connectionType: "oauth" });
+      return { ok: true, returnTo };
+    } catch (err) {
+      const attached = (err as { returnTo?: string }).returnTo;
+      this.audit.record({ type: "connection.failed", providerId, connectionType: "oauth", errorCode: err instanceof ProviderError ? err.code : "internal" });
+      return { ok: false, returnTo: attached ?? returnTo };
+    }
+  }
+
+  /** Resolve the credential to present to a provider, refreshing OAuth access tokens when they are about to expire. */
+  private async resolveCredential(conn?: Connection): Promise<{ value?: string; kind: "api_key" | "bearer" }> {
+    if (!conn?.secretRef) return { kind: "api_key" };
+    const raw = await this.secrets.get(conn.secretRef);
+    if (!raw) return { kind: "api_key" };
+    if (conn.type !== "oauth") return { value: raw, kind: "api_key" };
+    let tokens = JSON.parse(raw) as StoredTokens;
+    if (tokens.expiresAt && tokens.expiresAt - Date.now() < 60_000) tokens = await this.refreshTokens(conn, tokens);
+    return { value: tokens.accessToken, kind: "bearer" };
+  }
+
+  private refreshTokens(conn: Connection, tokens: StoredTokens): Promise<StoredTokens> {
+    const inflight = this.refreshing.get(conn.providerId);
+    if (inflight) return inflight;
+    if (!this.oauth) return Promise.reject(new ProviderError("auth_failed", "The connection expired. Please reconnect.", false));
+    const oauth = this.oauth;
+    const job = (async () => {
+      const next = await oauth.refresh(conn.providerId, tokens);
+      const ref = await this.secrets.put(JSON.stringify(next));
+      const old = conn.secretRef;
+      await this.connections.set({ ...conn, secretRef: ref });
+      if (old) await this.secrets.delete(old);
+      return next;
+    })().finally(() => this.refreshing.delete(conn.providerId));
+    this.refreshing.set(conn.providerId, job);
+    return job;
+  }
+
   /** Delete stored credential material and the connection record. */
   async disconnect(providerId: string): Promise<void> {
     const conn = await this.connections.get(providerId);
+    if (conn?.type === "oauth" && conn.secretRef && this.oauth) {
+      const raw = await this.secrets.get(conn.secretRef);
+      if (raw) await this.oauth.revoke(providerId, JSON.parse(raw) as StoredTokens); // best effort, never throws
+    }
     if (conn?.secretRef) await this.secrets.delete(conn.secretRef);
     await this.connections.delete(providerId);
     this.audit.record({ type: "connection.removed", providerId });
@@ -211,13 +283,14 @@ export class Gateway {
 
     const adapter = this.registry.get(req.providerId)!;
     const conn = await this.connections.get(req.providerId);
-    const secret = conn?.secretRef ? await this.secrets.get(conn.secretRef) : undefined;
+    let secret: string | undefined;
+    let credentialKind: "api_key" | "bearer" = "api_key";
 
     const controller = new AbortController();
     const onAbort = () => controller.abort();
     external?.addEventListener("abort", onAbort, { once: true });
     const timer = setTimeout(() => controller.abort(new DOMException("Timeout", "TimeoutError")), this.timeoutMs);
-    const ctx: AdapterContext = { fetch: this.fetchImpl, baseUrl: conn?.baseUrl, getSecret: async () => secret, signal: controller.signal };
+    const ctx: AdapterContext = { fetch: this.fetchImpl, baseUrl: conn?.baseUrl, getSecret: async () => secret, get credentialKind() { return credentialKind; }, signal: controller.signal };
 
     this.audit.record({ type: "chat.start", ...base, counts });
     yield { type: "start", sessionId, providerId: req.providerId, model: req.model };
@@ -225,6 +298,9 @@ export class Gateway {
     let replyChars = 0;
     let usage: { inputTokens?: number; outputTokens?: number } | undefined;
     try {
+      const cred = await this.resolveCredential(conn);
+      secret = cred.value;
+      credentialKind = cred.kind;
       for await (const evt of adapter.stream({ model: req.model, messages: req.messages, maxTokens: req.maxTokens }, ctx)) {
         if (evt.type === "delta") {
           replyChars += evt.text.length;

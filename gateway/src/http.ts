@@ -5,6 +5,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import { timingSafeEqual } from "node:crypto";
 import type { Gateway } from "./gateway.ts";
+import { sanitizeReturnTo } from "./oauth.ts";
 import { ProviderError } from "./types.ts";
 import type { ChatRequest, ExecutionMode } from "./types.ts";
 
@@ -18,6 +19,8 @@ export interface ServerOptions {
   /** Directory of the static UI export to serve (optional). */
   staticDir?: string;
   maxBodyBytes?: number;
+  /** Public base URL of this gateway (used for OAuth redirect URIs). Defaults to the request Host. */
+  publicUrl?: string;
 }
 
 const MIME: Record<string, string> = {
@@ -94,6 +97,27 @@ export function createHttpServer(opts: ServerOptions): Server {
     try {
       if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
 
+      const cb = url.pathname.match(/^\/oauth\/callback\/([a-z0-9_-]+)$/);
+      if (cb && req.method === "GET") {
+        // Provider redirects the browser here. Protected by single-use state + PKCE, not a bearer header.
+        let target = "/settings/";
+        let ok = false;
+        try {
+          const result = await opts.gateway.completeOAuth(cb[1], { code: url.searchParams.get("code"), state: url.searchParams.get("state"), error: url.searchParams.get("error") });
+          ok = result.ok;
+          target = sanitizeReturnTo(result.returnTo);
+        } catch {
+          res.writeHead(400, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" });
+          res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Link expired</title><body style="font:16px system-ui;padding:24px"><h1>That link is invalid or has expired</h1><p><a href="/settings/">Back to WindSwordAI</a></p>');
+          return;
+        }
+        const dest = new URL(target, "http://gateway.local");
+        dest.searchParams.set(ok ? "connected" : "connect_error", cb[1]);
+        res.writeHead(302, { location: dest.pathname + dest.search + dest.hash, "cache-control": "no-store", "referrer-policy": "no-referrer" });
+        res.end();
+        return;
+      }
+
       if (!url.pathname.startsWith("/v1/")) {
         if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res, url.pathname);
         res.writeHead(405).end(); return;
@@ -109,6 +133,13 @@ export function createHttpServer(opts: ServerOptions): Server {
         const mode = (url.searchParams.get("mode") as ExecutionMode) || "secure_local";
         if (!MODES.includes(mode)) throw new ProviderError("bad_request", "Unknown mode.");
         return send(res, 200, { mode, providers: await opts.gateway.listProviders(mode) });
+      }
+
+      const oauthStart = url.pathname.match(/^\/v1\/connections\/([a-z0-9_-]+)\/oauth\/start$/);
+      if (oauthStart && req.method === "POST") {
+        const body = await readJson(req);
+        const redirectBase = opts.publicUrl ?? `http://${req.headers.host ?? "127.0.0.1"}`;
+        return send(res, 200, { authorizeUrl: opts.gateway.beginOAuth(oauthStart[1], { returnTo: sanitizeReturnTo(body.returnTo), redirectBase }) });
       }
 
       const conn = url.pathname.match(/^\/v1\/connections\/([a-z0-9_-]+)$/);

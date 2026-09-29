@@ -1,7 +1,7 @@
 // Provider-neutral contracts for the WindSwordAI gateway (PR 03).
 // Adding a provider = descriptor + auth connector(s) + adapter + capability/policy metadata.
 
-export type ConnectionType = "local" | "api_key" | "subscription" | "workspace";
+export type ConnectionType = "local" | "api_key" | "oauth" | "subscription" | "workspace";
 export type UsageSource = "local" | "api_billing" | "subscription" | "enterprise";
 export type ExecutionMode = "secure_local" | "standard";
 export type ContentClass = "synthetic" | "general" | "protected";
@@ -97,6 +97,8 @@ export interface AdapterContext {
   baseUrl?: string;
   /** Resolves the secret at call time. Adapters never receive it from UI state. */
   getSecret: () => Promise<string | undefined>;
+  /** How the resolved credential must be presented: an API key header or an OAuth bearer token. */
+  credentialKind?: "api_key" | "bearer";
   signal?: AbortSignal;
 }
 
@@ -152,4 +154,6 @@ export interface ProviderView {
   eligibility: PolicyDecision;
   /** Eligibility if the prompt is protected / document-bearing. */
   protectedEligibility: PolicyDecision;
+  /** Whether delegated account linking (OAuth) is configured on this gateway for the provider. */
+  oauth: { available: boolean };
 }

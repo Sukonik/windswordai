@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { AuditLog } from "./src/audit.ts";
 import { Gateway } from "./src/gateway.ts";
 import { createHttpServer } from "./src/http.ts";
+import { OAuthManager, oauthConfigsFromEnv } from "./src/oauth.ts";
 import { createDefaultRegistry } from "./src/providers/index.ts";
 import { FileConnectionStore, FileSecretStore, loadVaultKey } from "./src/vault.ts";
 
@@ -20,8 +21,12 @@ mkdirSync(stateDir, { recursive: true, mode: 0o700 });
 const auditFile = join(stateDir, "audit.jsonl");
 const audit = new AuditLog((line) => appendFileSync(auditFile, line + "\n", { mode: 0o600 }));
 
+const registry = createDefaultRegistry();
+const oauthConfigs = oauthConfigsFromEnv(env, registry.list().map((a) => a.descriptor.id));
+
 const gateway = new Gateway({
-  registry: createDefaultRegistry(),
+  registry,
+  oauth: new OAuthManager({ configs: oauthConfigs }),
   secrets: new FileSecretStore(stateDir, loadVaultKey(stateDir)),
   connections: new FileConnectionStore(stateDir),
   audit,
@@ -34,7 +39,7 @@ for (const r of await gateway.connectFromEnv(env)) console.log(`  ${r.ok ? "✓"
 const staticDir = resolve(env.WINDSWORD_STATIC_DIR ?? "out");
 const origins = (env.WINDSWORD_ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8787,http://127.0.0.1:8787").split(",").map((s) => s.trim());
 
-const server = createHttpServer({ gateway, host, port, token, allowedOrigins: origins, staticDir: existsSync(staticDir) ? staticDir : undefined });
+const server = createHttpServer({ gateway, host, port, token, allowedOrigins: origins, publicUrl: env.WINDSWORD_PUBLIC_URL, staticDir: existsSync(staticDir) ? staticDir : undefined });
 server.listen(port, host, () => {
   console.log(`\nWindSwordAI gateway listening on http://${host}:${port}`);
   if (host === "0.0.0.0" || host === "::") {
@@ -47,6 +52,7 @@ server.listen(port, host, () => {
     console.log("  note      : on Windows the vault key file is not permission-protected. For stronger protection set WINDSWORD_VAULT_KEY\n              (32 random bytes, base64) in your environment so the key is not stored next to the vault.");
   }
   console.log(`  UI        : ${existsSync(staticDir) ? `served from ${staticDir}` : "not built (run `npm run build:local` first, or use `npm run dev`)"}`);
+  console.log(`  account linking (OAuth): ${Object.keys(oauthConfigs).length ? Object.keys(oauthConfigs).join(", ") : "none configured (developer keys only)"}`);
   console.log(`  token     : ${token ? token : "not required on loopback"}`);
   console.log(`  default mode is Secure Local: cloud providers stay blocked until you switch to Standard in the UI.\n`);
 });

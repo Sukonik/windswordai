@@ -1,0 +1,19 @@
+{
+  "ts": "2026-09-29T20:54:27.370Z",
+  "type": "chat.end",
+  "sessionId": "ses_q2u93jk2mv83",
+  "providerId": "gemini",
+  "model": "gemini-fake-pro",
+  "mode": "standard",
+  "contentClass": "general",
+  "counts": {
+    "messages": 9,
+    "promptChars": 1091,
+    "attachments": 0,
+    "replyChars": 111
+  },
+  "usage": {
+    "inputTokens": 17,
+    "outputTokens": 16
+  }
+}

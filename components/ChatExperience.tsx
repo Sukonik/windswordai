@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useConnect } from "@/components/ConnectProvider";
 import { Icon } from "@/components/Icon";
 import { useGateway } from "@/components/GatewayProvider";
+import { ProviderMark } from "@/components/ProviderMark";
 import { WakeMark } from "@/components/WakeMark";
-import { choiceKey, parseChoice } from "@/lib/gateway/client";
 import { loadChoice, saveChoice } from "@/lib/gateway/settings";
+import { providerUi } from "@/lib/gateway/provider-ui";
 import type { ChatMessage, ProviderView, StreamEvent } from "@/gateway/src/types";
 
 type ReplyStatus = "streaming" | "done" | "error" | "blocked" | "cancelled";
@@ -14,7 +16,8 @@ interface Reply {
   id: number;
   providerId: string;
   model: string;
-  label: string;
+  providerName: string;
+  modelLabel: string;
   text: string;
   status: ReplyStatus;
   message?: string;
@@ -40,6 +43,8 @@ const actions = [
   { label: "Recent documents", detail: "Your latest local files", symbol: "↺", attachment: "Sample-Council-Memo.docx" },
 ];
 
+const RESUME_KEY = "windsword-chat-resume";
+
 const suggestions = ["Review a contract", "Compare documents", "Case timeline", "Summarize matter"];
 
 interface Choice { providerId: string; model: string }
@@ -58,47 +63,57 @@ function resolveChoice(providers: ProviderView[], wanted: Choice | undefined, pr
   return first ? { providerId: first.descriptor.id, model: first.models[0].id } : undefined;
 }
 
-function ModelSelect({
-  label, value, providers, protectedMaterial, demo, onChange, className = "",
+function providerNote(p: ProviderView, protectedMaterial: boolean, demo: boolean) {
+  const decision = protectedMaterial ? p.protectedEligibility : p.eligibility;
+  if (p.status === "disabled") return { note: " — disabled", disabled: true };
+  if (!decision.allow && decision.code === "secure_local_blocks_cloud") return { note: " — blocked in Secure Local", disabled: true };
+  if (!decision.allow && decision.code === "protected_content_blocks_cloud") return { note: " — blocked for protected material", disabled: true };
+  if (demo && p.descriptor.id !== "mock") return { note: " — connect in the app", disabled: false };
+  if (p.status === "offline") return { note: " — not running", disabled: false };
+  if (p.status === "not_connected" || (p.status === "ready" && p.models.length === 0)) return { note: p.descriptor.kind === "local" ? " — detect" : " — connect", disabled: false };
+  return { note: "", disabled: false };
+}
+
+/** Provider chip: shows identity; picking a provider that is not connected opens the connect sheet. */
+function ProviderPicker({
+  label, value, providers, protectedMaterial, demo, onPick,
 }: {
   label: string;
-  value?: Choice;
+  value?: string;
   providers: ProviderView[];
   protectedMaterial: boolean;
   demo: boolean;
-  onChange: (choice: Choice) => void;
-  className?: string;
+  onPick: (providerId: string) => void;
 }) {
-  const current = value && providers.find((p) => p.descriptor.id === value.providerId);
-  const currentLabel = current ? `${current.descriptor.displayName} · ${current.models.find((m) => m.id === value?.model)?.label ?? value?.model}` : "No provider available";
+  const current = providers.find((p) => p.descriptor.id === value);
+  const ui = providerUi(value ?? "", current?.descriptor.displayName);
   return (
-    <label className={`model-select ${className}`.trim()}>
-      <span className="model-select__orb" aria-hidden="true" />
-      <span className="model-select__text">{currentLabel}</span>
+    <label className="pill-select pill-select--provider">
+      {value ? <ProviderMark id={value} displayName={current?.descriptor.displayName} size={22} /> : <span className="model-select__orb" aria-hidden="true" />}
+      <span className="pill-select__text">{value ? ui.name : "No provider"}</span>
       <Icon name="chevron" size={14} />
-      <select
-        aria-label={label}
-        value={value ? choiceKey(value.providerId, value.model) : ""}
-        onChange={(event) => onChange(parseChoice(event.target.value))}
-      >
+      <select aria-label={label} value={value ?? ""} onChange={(event) => onPick(event.target.value)}>
         {!value && <option value="">No provider available</option>}
         {providers.map((p) => {
-          const decision = protectedMaterial ? p.protectedEligibility : p.eligibility;
-          const enabled = usable(p, protectedMaterial);
-          let note = "";
-          if (demo && p.descriptor.id !== "mock") note = " — needs gateway";
-          else if (p.status === "offline") note = " — offline";
-          else if (p.status === "not_connected") note = " — not connected";
-          else if (!decision.allow) note = decision.code === "secure_local_blocks_cloud" ? " — blocked in Secure Local" : decision.code === "protected_content_blocks_cloud" ? " — blocked for protected material" : " — unavailable";
-          else if (p.models.length === 0) note = " — no models found";
-          return (
-            <optgroup key={p.descriptor.id} label={`${p.descriptor.displayName}${note}`} disabled={!enabled}>
-              {p.models.slice(0, 60).map((m) => (
-                <option key={m.id} value={choiceKey(p.descriptor.id, m.id)} disabled={!enabled}>{m.label}</option>
-              ))}
-            </optgroup>
-          );
+          const { note, disabled } = providerNote(p, protectedMaterial, demo);
+          return <option key={p.descriptor.id} value={p.descriptor.id} disabled={disabled}>{providerUi(p.descriptor.id, p.descriptor.displayName).name}{note}</option>;
         })}
+      </select>
+    </label>
+  );
+}
+
+function ModelPicker({ label, choice, providers, onChange }: { label: string; choice?: Choice; providers: ProviderView[]; onChange: (choice: Choice) => void }) {
+  const view = choice && providers.find((p) => p.descriptor.id === choice.providerId);
+  const models = view?.models.slice(0, 60) ?? [];
+  const current = models.find((m) => m.id === choice?.model);
+  return (
+    <label className="pill-select pill-select--model">
+      <span className="pill-select__text">{current?.label ?? (models.length ? "Model" : "No models")}</span>
+      <Icon name="chevron" size={14} />
+      <select aria-label={label} value={choice?.model ?? ""} disabled={!models.length} onChange={(event) => choice && onChange({ providerId: choice.providerId, model: event.target.value })}>
+        {!models.length && <option value="">No models</option>}
+        {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
       </select>
     </label>
   );
@@ -108,7 +123,9 @@ function ReplyBody({ reply, onStop, onRetry }: { reply: Reply; onStop: () => voi
   return (
     <div className="reply__body" data-status={reply.status}>
       <div className="reply__head">
-        <span className="message-role">{reply.label}</span>
+        <ProviderMark id={reply.providerId} displayName={reply.providerName} size={20} />
+        <span className="message-role">{reply.providerName}</span>
+        <span className="reply__model">{reply.modelLabel}</span>
         <span className="reply__status" aria-live="polite">
           {reply.status === "streaming" && "Streaming…"}
           {reply.status === "cancelled" && "Stopped"}
@@ -116,12 +133,12 @@ function ReplyBody({ reply, onStop, onRetry }: { reply: Reply; onStop: () => voi
           {reply.status === "error" && "Failed"}
         </span>
         {reply.status === "streaming" && (
-          <button type="button" className="reply__action" onClick={onStop} aria-label={`Stop ${reply.label}`}>
+          <button type="button" className="reply__action" onClick={onStop} aria-label={`Stop ${reply.providerName}`}>
             <Icon name="stop" size={14} /><span>Stop</span>
           </button>
         )}
         {(reply.status === "error" || reply.status === "cancelled" || reply.status === "blocked") && reply.retryable !== false && (
-          <button type="button" className="reply__action" onClick={onRetry} aria-label={`Retry ${reply.label}`}>
+          <button type="button" className="reply__action" onClick={onRetry} aria-label={`Retry ${reply.providerName}`}>
             <Icon name="retry" size={14} /><span>Retry</span>
           </button>
         )}
@@ -142,7 +159,8 @@ function ReplyBody({ reply, onStop, onRetry }: { reply: Reply; onStop: () => voi
 }
 
 export function ChatExperience() {
-  const { transport, status, mode, setMode, providers, loading } = useGateway();
+  const { transport, status, mode, setMode, providers, loading, linked, clearLinked } = useGateway();
+  const { open: openConnect, notify } = useConnect();
   const demo = transport.kind === "demo";
 
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -158,6 +176,23 @@ export function ChatExperience() {
 
   const nextId = useRef(1);
   const controllers = useRef(new Map<number, AbortController>());
+
+  // Coming back from a provider's authorization page: restore the conversation that was on screen.
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(RESUME_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(RESUME_KEY);
+      const saved = JSON.parse(raw) as { turns: Turn[]; text: string };
+      if (!Array.isArray(saved.turns)) return;
+      nextId.current = 1 + Math.max(0, ...saved.turns.flatMap((t) => [t.id, ...t.replies.map((r) => r.id)]));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring persisted client-only state after hydration
+      setTurns(saved.turns);
+      setText(saved.text ?? "");
+    } catch {
+      /* storage unavailable or corrupt: start fresh */
+    }
+  }, []);
   const buffers = useRef(new Map<string, string>());
   const rafRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -167,7 +202,14 @@ export function ChatExperience() {
   const composerRef = useRef<HTMLDivElement>(null);
 
   const protectedMaterial = protectedOn || attachments.length > 0;
-  const primary = useMemo(() => resolveChoice(providers, wantedPrimary, protectedMaterial), [providers, wantedPrimary, protectedMaterial]);
+  // Returning from a provider's authorization page selects that provider (the conversation is unchanged).
+  const linkedChoice = useMemo(() => {
+    if (!linked?.ok) return undefined;
+    const view = providers.find((p) => p.descriptor.id === linked.providerId);
+    return view?.models[0] ? { providerId: view.descriptor.id, model: view.models[0].id } : undefined;
+  }, [linked, providers]);
+  const effectiveWanted = linkedChoice ?? wantedPrimary;
+  const primary = useMemo(() => resolveChoice(providers, effectiveWanted, protectedMaterial), [providers, effectiveWanted, protectedMaterial]);
   const secondary = useMemo(() => {
     if (!compare) return undefined;
     const others = providers.filter((p) => p.descriptor.id !== primary?.providerId);
@@ -342,9 +384,9 @@ export function ChatExperience() {
     event?.preventDefault();
     if (!canSend || streaming || !primary) return;
     const prompt = text.trim() || "Review the attached material.";
-    const labelFor = (c: Choice) => {
+    const namesFor = (c: Choice) => {
       const p = providers.find((x) => x.descriptor.id === c.providerId);
-      return `${p?.descriptor.displayName ?? c.providerId} · ${p?.models.find((m) => m.id === c.model)?.label ?? c.model}`;
+      return { providerName: providerUi(c.providerId, p?.descriptor.displayName).name, modelLabel: p?.models.find((m) => m.id === c.model)?.label ?? c.model };
     };
     const history: ChatMessage[] = turns.flatMap((t) => {
       const first = t.replies.find((r) => r.status === "done" && r.text);
@@ -359,7 +401,7 @@ export function ChatExperience() {
       protectedMaterial,
       messages: [...history, { role: "user", content: prompt }],
       compareGroupId: sides.length > 1 ? `cmp_${turnId}_${Date.now().toString(36)}` : undefined,
-      replies: sides.map((c) => ({ id: nextId.current++, providerId: c.providerId, model: c.model, label: labelFor(c), text: "", status: "streaming" as const })),
+      replies: sides.map((c) => ({ id: nextId.current++, providerId: c.providerId, model: c.model, ...namesFor(c), text: "", status: "streaming" as const })),
     };
     saveChoice(primary);
     setTurns((current) => [...current, turn]);
@@ -370,20 +412,65 @@ export function ChatExperience() {
     turn.replies.forEach((reply) => void runReply(turn, reply));
   }
 
+  // Picking a provider that is not connected opens the same connect sheet as Settings, then selects it.
+  function pickProvider(side: "first" | "second", providerId: string) {
+    const view = providers.find((p) => p.descriptor.id === providerId);
+    if (!view) return;
+    const select = (c: Choice) => {
+      clearLinked();
+      if (side === "first") { setWantedPrimary(c); saveChoice(c); } else setWantedSecondary(c);
+    };
+    if (view.status !== "ready" || view.models.length === 0) {
+      openConnect({
+        providerId,
+        onConnected: (v) => { if (v.models[0]) select({ providerId: v.descriptor.id, model: v.models[0].id }); },
+        onBeforeRedirect: () => {
+          try {
+            const stable = turns.map((t) => ({ ...t, replies: t.replies.map((r) => (r.status === "streaming" ? { ...r, status: "cancelled" as const, message: "Interrupted while connecting." } : r)) }));
+            window.sessionStorage.setItem(RESUME_KEY, JSON.stringify({ turns: stable, text }));
+          } catch {
+            /* ignore: the conversation just won't be restored */
+          }
+        },
+      });
+      return;
+    }
+    select({ providerId, model: view.models[0].id });
+  }
+
+  // Connected but blocked by policy (e.g. just linked while in Secure Local): say why, with the way out.
+  const wantedView = effectiveWanted && providers.find((p) => p.descriptor.id === effectiveWanted.providerId);
+  const modeNotice = wantedView && wantedView.status === "ready" && wantedView.eligibility.code === "secure_local_blocks_cloud" ? providerUi(wantedView.descriptor.id, wantedView.descriptor.displayName).name : undefined;
+
+  // Tell the user once when they come back from a provider's authorization page.
+  useEffect(() => {
+    if (!linked) return;
+    const name = providerUi(linked.providerId).name;
+    notify(linked.ok ? `${name} connected.` : `${name} wasn’t connected. Authorization was cancelled or expired.`);
+  }, [linked, notify]);
+
   const kicker = demo ? "Demo mode · synthetic provider" : status.state === "connected" ? `Gateway connected · ${mode === "secure_local" ? "Secure Local" : "Standard"}` : "Local Secure";
   const modeLabel = mode === "secure_local" ? "Secure Local" : "Standard";
 
   return (
     <section className="chat-stage">
       <div className={scrolled ? "chat-toolbar is-scrolled" : "chat-toolbar"}>
-        <ModelSelect
-          label={compare ? "First provider and model" : "Provider and model"}
-          value={primary}
-          providers={providers}
-          protectedMaterial={protectedMaterial}
-          demo={demo}
-          onChange={(c) => { setWantedPrimary(c); saveChoice(c); }}
-        />
+        <div className="toolbar-pair">
+          <ProviderPicker
+            label={compare ? "First provider" : "Provider"}
+            value={primary?.providerId}
+            providers={providers}
+            protectedMaterial={protectedMaterial}
+            demo={demo}
+            onPick={(id) => pickProvider("first", id)}
+          />
+          <ModelPicker
+            label={compare ? "First model" : "Model"}
+            choice={primary}
+            providers={providers}
+            onChange={(c) => { clearLinked(); setWantedPrimary(c); saveChoice(c); }}
+          />
+        </div>
         <button
           type="button"
           className="toolbar-toggle"
@@ -406,17 +493,33 @@ export function ChatExperience() {
         {compare && (
           <div className="toolbar-row">
             <span className="toolbar-row__vs">vs</span>
-            <ModelSelect
-              label="Second provider and model"
-              value={secondary}
-              providers={providers.filter((p) => p.descriptor.id !== primary?.providerId)}
-              protectedMaterial={protectedMaterial}
-              demo={demo}
-              onChange={setWantedSecondary}
-            />
+            <div className="toolbar-pair">
+              <ProviderPicker
+                label="Second provider"
+                value={secondary?.providerId}
+                providers={providers.filter((p) => p.descriptor.id !== primary?.providerId)}
+                protectedMaterial={protectedMaterial}
+                demo={demo}
+                onPick={(id) => pickProvider("second", id)}
+              />
+              <ModelPicker
+                label="Second model"
+                choice={secondary}
+                providers={providers}
+                onChange={setWantedSecondary}
+              />
+            </div>
           </div>
         )}
       </div>
+
+      {modeNotice && (
+        <div className="chat-notice" role="status">
+          <Icon name="lock" size={16} />
+          <span>{modeNotice} is connected, but Secure Local blocks cloud providers.</span>
+          <button type="button" className="btn btn--small" onClick={() => setMode("standard")}>Switch to Standard</button>
+        </div>
+      )}
 
       <div className="feed">
         <div className="conversation" ref={feedRef} onScroll={onFeedScroll} role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation">
