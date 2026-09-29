@@ -87,6 +87,30 @@ Requirements:
 - content hierarchy remains understandable without relying on hover
 - dense desktop features should collapse intentionally rather than shrink indiscriminately
 
+## Control sizing and density
+
+- `--control` is the touch-first control size (44px). Phones and touch tablets always use it.
+- Only **desktop with a mouse** (`min-width: 900px` and `pointer: fine`) drops to dense 40px controls (36px for segmented options). Never key density off width alone.
+- Hover styles live inside `@media (hover: hover)` so a tap never leaves a sticky hover state.
+- Buttons are reset (`appearance: none`, `padding: 0`, `touch-action: manipulation`); circular controls set `aspect-ratio: 1` and min sizes so flex/grid can never squash them.
+- Every button-like control has an `:active` press state (~120ms) and a visible `:focus-visible` ring. `forced-colors` gets explicit borders.
+
+## Search
+
+- One search field lives at the top of the navigation (menu sheet on phones, sidebar on desktop). 16px font on phones (no iOS zoom), 48px tall on touch, 40px dense with a mouse.
+- Filters pages and recent chats live; `Enter` opens the first result, `↓` moves into the list, `Esc` clears first and only then closes the sheet.
+- `⌘K` / `Ctrl K` focuses it (opening the sheet first on phones/tablets); the hint chip shows only where a keyboard is likely.
+
+## Chat feed
+
+The feed always knows where it is:
+
+- **Pinned** to the latest message while you are at the end; a `ResizeObserver` keeps it pinned when the composer grows, the keyboard opens, or the device rotates.
+- **Your own message** always returns the feed to the end.
+- **A reply while you are reading history** does not yank the scroll. A "Jump to latest" / "N new replies" button appears instead.
+- The toolbar gains a shadow once the feed has scrolled; the feed is a labelled `role="log"`.
+- The chat height follows `visualViewport` (`--vvh`) because iOS Safari does not shrink the layout for the keyboard. Reading width is `--chat-measure` (760px, 840px on ≥1600px) and the composer aligns to it.
+
 ## Performance
 
 Rich does not mean heavy.

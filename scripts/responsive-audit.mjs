@@ -57,12 +57,23 @@ for (const viewport of viewports) {
         return r ? { left: r.left, right: r.right, top: r.top, vw: window.innerWidth } : null;
       });
       add({ ...base, check: "add-menu-inside-viewport", ok: Boolean(menu) && menu.left >= 0 && menu.right <= menu.vw && menu.top >= 0, menu });
+      // Phones/tablets keep 44px; desktop-with-mouse uses dense 40px controls (WCAG 2.2 minimum is 24px).
+      const minTarget = viewport.width >= 900 ? 40 : 44;
       const composerTargets = await page.evaluate(() =>
         [".composer-action.plus", ".composer-action.voice", ".send-button"].map((sel) => {
           const r = document.querySelector(sel)?.getBoundingClientRect();
           return { sel, w: Math.round(r?.width ?? 0), h: Math.round(r?.height ?? 0) };
         }));
-      add({ ...base, check: "composer-touch-targets-44", ok: composerTargets.every((t) => t.w >= 44 && t.h >= 44), composerTargets });
+      const shapes = await page.evaluate(() => ({
+        circles: [".composer-action.plus", ".composer-action.voice", ".send-button", ".menu-button", ".theme-button"].map((sel) => {
+          const r = document.querySelector(sel)?.getBoundingClientRect();
+          return { sel, w: r?.width ?? 0, h: r?.height ?? 0 };
+        }),
+        chips: [...document.querySelectorAll(".suggestion-grid button")].map((b) => { const r = b.getBoundingClientRect(); return { row: Math.round(r.top), h: Math.round(r.height) }; }),
+      }));
+      add({ ...base, check: "round-controls-are-not-squashed", ok: shapes.circles.every((c) => Math.abs(c.w - c.h) < 0.6), shapes: shapes.circles });
+      add({ ...base, check: "suggestion-chips-uniform-and-44", ok: shapes.chips.every((c) => c.h >= 44 && shapes.chips.filter((o) => o.row === c.row).every((o) => o.h === c.h)), chips: shapes.chips });
+      add({ ...base, check: "composer-touch-targets-44", ok: composerTargets.every((t) => t.w >= minTarget && t.h >= minTarget), composerTargets });
     }
 
     if (viewport.width <= PHONE_MAX) {
@@ -93,6 +104,8 @@ for (const viewport of viewports) {
           const b = e.getBoundingClientRect();
           return { text: e.textContent.trim(), h: Math.round(b.height), clipped: e.scrollWidth > e.clientWidth + 1 };
         });
+        // The sheet scrolls as one on short phones; the footer must be reachable at the end.
+        nav.scrollTop = nav.scrollHeight;
         const foot = nav.querySelector(".sidebar__foot").getBoundingClientRect();
         return {
           left: r.left, right: r.right, vw: window.innerWidth, vh: window.innerHeight,
@@ -102,6 +115,19 @@ for (const viewport of viewports) {
       });
       add({ ...base, check: "menu-open-fits-viewport-and-locks-scroll", ok: open.left >= 0 && open.right <= open.vw + 1 && open.footBottom <= open.vh + 1 && open.bodyLocked && open.expanded === "true", open: { ...open, rows: undefined } });
       add({ ...base, check: "menu-rows-touch-size-no-clipping", ok: open.rows.every((r) => r.h >= 44 && !r.clipped), rows: open.rows.filter((r) => r.h < 44 || r.clipped) });
+
+      // Search: phone-sized field, live filtering, Escape clears before it closes the sheet.
+      const searchBox = page.getByRole("searchbox", { name: "Search chats and pages" });
+      const field = await searchBox.evaluate((el) => ({ font: parseFloat(getComputedStyle(el).fontSize), h: el.closest(".nav-search").getBoundingClientRect().height }));
+      add({ ...base, check: "search-field-phone-sized", ok: field.font >= 16 && field.h >= 44, field });
+      await searchBox.fill("matt");
+      const hits = await page.locator(".search-result .search-result__label").allTextContents();
+      add({ ...base, check: "search-filters-live", ok: hits.includes("Matters") && !hits.includes("Chat"), hits });
+      await searchBox.fill("zzzz");
+      add({ ...base, check: "search-empty-state", ok: await page.getByText("No results").isVisible() });
+      await searchBox.press("Escape");
+      const afterEsc = await page.evaluate(() => ({ value: document.querySelector(".nav-search input").value, open: document.body.dataset.drawerOpen === "true" }));
+      add({ ...base, check: "search-escape-clears-then-keeps-sheet-open", ok: afterEsc.value === "" && afterEsc.open, afterEsc });
 
       // Appearance from inside the menu, then persistence across reload.
       await page.getByRole("button", { name: "Light", exact: true }).click();
@@ -127,6 +153,13 @@ for (const viewport of viewports) {
       await page.waitForURL(/\/matters\/?$/);
       const closedAfterNav = await page.evaluate(() => document.body.dataset.drawerOpen !== "true");
       add({ ...base, check: "menu-navigation-closes-menu", ok: closedAfterNav });
+
+      await menuBtn.click();
+      const sb = page.getByRole("searchbox", { name: "Search chats and pages" });
+      await sb.fill("night");
+      await sb.press("Enter");
+      await page.waitForURL(/\/night-studio\/?$/);
+      add({ ...base, check: "search-enter-navigates-and-closes", ok: await page.evaluate(() => document.body.dataset.drawerOpen !== "true" && document.querySelector(".nav-search input")?.value === "") });
     } else {
       const persistent = await page.evaluate(() => {
         const nav = document.getElementById("windsword-navigation");
@@ -135,10 +168,64 @@ for (const viewport of viewports) {
         return { visible: getComputedStyle(nav).visibility === "visible" && r.width > 200, menuHidden: getComputedStyle(menu).display === "none" };
       });
       add({ ...base, check: "desktop-persistent-sidebar", ok: persistent.visible && persistent.menuHidden, persistent });
+      await page.keyboard.press("Control+k");
+      await page.waitForTimeout(120);
+      const focused = await page.evaluate(() => document.activeElement?.closest(".nav-search") !== null && document.activeElement?.tagName === "INPUT");
+      const hint = await page.locator(".nav-search__hint").isVisible();
+      add({ ...base, check: "desktop-search-ctrl-k-focuses-and-shows-hint", ok: focused && hint, focused, hint });
     }
 
     await context.close();
   }
+}
+
+
+// Chat feed "knows where it is": pinned to latest, jump cue when reading history, follows composer growth.
+for (const viewport of [viewports.find((v) => v.name === "390x844"), { name: "390x664", width: 390, height: 664 }, viewports.find((v) => v.name === "768x1024"), viewports.find((v) => v.name === "1440x1000")]) {
+  const { context, page, errors } = await openPage(browser, viewport, "/chat/");
+  const base = { viewport: viewport.name, route: "/chat/" };
+  const box = page.getByLabel("Message WindSwordAI");
+  const dist = () => page.evaluate(() => { const f = document.querySelector(".conversation"); return f.scrollHeight - f.scrollTop - f.clientHeight; });
+  const send = async (text) => { await box.fill(text); await page.getByRole("button", { name: "Send message" }).click(); };
+  const waitReply = (n) => page.waitForFunction((count) => document.querySelectorAll(".message.assistant:not(.processing-message)").length >= count, n, { timeout: 5000 });
+
+  // Send until the feed actually overflows (tall viewports need more messages), minimum 4.
+  let sent = 0;
+  const overflows = () => page.evaluate(() => { const f = document.querySelector(".conversation"); return f.scrollHeight > f.clientHeight + 240; });
+  while (sent < 4 || (!(await overflows()) && sent < 12)) {
+    sent += 1;
+    await send(`Question ${sent}: please walk through the notice and termination provisions in detail.`);
+    await waitReply(sent);
+  }
+  await page.waitForTimeout(500);
+  add({ ...base, check: "feed-pinned-to-latest-after-replies", ok: (await dist()) < 80, dist: await dist() });
+
+  await page.evaluate(() => { document.querySelector(".conversation").scrollTop = 0; });
+  await page.waitForTimeout(150);
+  add({ ...base, check: "feed-shows-jump-to-latest-when-scrolled-back", ok: await page.getByRole("button", { name: /Jump to latest/ }).isVisible() });
+
+  await send("Question 5: and what about assignment?");
+  await waitReply(sent + 1);
+  await page.waitForTimeout(500);
+  add({ ...base, check: "own-message-returns-feed-to-latest", ok: (await dist()) < 80, dist: await dist() });
+
+  await box.fill("Question 6: summarize.");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await page.waitForTimeout(300); // let the send-scroll settle, then go back into history before the reply lands
+  await page.evaluate(() => { document.querySelector(".conversation").scrollTop = 0; });
+  await waitReply(sent + 2);
+  const cue = await page.getByRole("button", { name: /1 new reply/ }).isVisible();
+  add({ ...base, check: "reply-while-reading-history-raises-cue-not-scroll", ok: cue && (await dist()) > 80, cue });
+  await page.getByRole("button", { name: /new repl/ }).click();
+  await page.waitForTimeout(600);
+  add({ ...base, check: "jump-button-returns-to-latest", ok: (await dist()) < 80 && !(await page.getByRole("button", { name: /Jump to latest|new repl/ }).isVisible()) });
+
+  await box.fill("line one\nline two\nline three\nline four\nline five");
+  await page.waitForTimeout(250);
+  const grown = await page.evaluate(() => { const c = document.querySelector(".composer").getBoundingClientRect(); return { bottom: c.bottom, vh: window.innerHeight, docScroll: document.documentElement.scrollHeight - window.innerHeight }; });
+  add({ ...base, check: "composer-growth-keeps-feed-pinned-and-composer-visible", ok: (await dist()) < 80 && grown.bottom <= grown.vh + 1 && grown.docScroll <= 1, grown, dist: await dist() });
+  add({ ...base, check: "feed-no-errors", ok: errors.length === 0, errors });
+  await context.close();
 }
 
 await browser.close();

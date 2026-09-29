@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "@/components/Icon";
 import { ThemeButton, ThemeSegment } from "@/components/ThemeToggle";
@@ -27,6 +27,15 @@ const recentChats = [
 
 type NavItem = { label: string; href: string; icon: string };
 
+const searchIndex: (NavItem & { kind: string })[] = [
+  ...primaryNav.map((item) => ({ ...item, kind: "Page" })),
+  ...utilityNav.map((item) => ({ ...item, kind: "Page" })),
+  ...recentChats.map((label) => ({ label, href: "/chat", icon: "chat", kind: "Recent chat" })),
+];
+
+const isMacSnapshot = () => /Mac|iPhone|iPad/.test(navigator.platform);
+const noopSubscribe = () => () => {};
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // The sheet is "open for" a specific route, so navigating always closes it.
@@ -39,6 +48,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       return next ? pathname : null;
     });
   }, [pathname]);
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const isMac = useSyncExternalStore(noopSubscribe, isMacSnapshot, () => false);
+  const term = query.trim().toLowerCase();
+  const results = term ? searchIndex.filter((item) => item.label.toLowerCase().includes(term)) : [];
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -85,6 +100,37 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  // Cmd/Ctrl+K: focus search (opens the sheet first on phones/tablets).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (!window.matchMedia("(min-width: 900px)").matches) setOpen(true);
+        requestAnimationFrame(() => searchRef.current?.focus());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setOpen]);
+
+  function onSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape" && query) {
+      event.stopPropagation(); // clear first; a second Escape closes the sheet
+      setQuery("");
+    } else if (event.key === "Enter" && results[0]) {
+      event.preventDefault();
+      router.push(results[0].href);
+      setQuery("");
+      setOpen(false);
+    } else if (event.key === "ArrowDown") {
+      const first = document.querySelector<HTMLElement>(".search-results a");
+      if (first) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
   const isChat = pathname === "/chat" || pathname === "/chat/";
 
   return (
@@ -121,7 +167,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label="WindSwordAI navigation"
           onClick={(event) => {
             // Any link tap closes the sheet, including a link to the current page.
-            if ((event.target as HTMLElement).closest("a")) setOpen(false);
+            if ((event.target as HTMLElement).closest("a")) {
+              setOpen(false);
+              setQuery("");
+            }
           }}
         >
           <div className="sidebar__head">
@@ -144,21 +193,62 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="sidebar__scroll">
-            <Link className="new-chat" href="/chat">
-              <Icon name="plus" size={18} />
-              <span>New chat</span>
-            </Link>
+            <form className="nav-search" role="search" onSubmit={(event) => event.preventDefault()}>
+              <Icon name="search" size={18} />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={onSearchKeyDown}
+                placeholder="Search"
+                aria-label="Search chats and pages"
+                enterKeyHint="search"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              {query ? (
+                <button type="button" className="nav-search__clear" aria-label="Clear search" onClick={() => { setQuery(""); searchRef.current?.focus(); }}>
+                  <Icon name="close" size={16} />
+                </button>
+              ) : (
+                <kbd className="nav-search__hint" aria-hidden="true">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+              )}
+            </form>
 
-            <nav className="nav-group" aria-label="Primary">
-              {primaryNav.map((item) => <NavLink key={item.href} item={item} />)}
-            </nav>
+            {term ? (
+              <div className="search-results" role="region" aria-label="Search results" aria-live="polite">
+                <p className="section-label">{results.length ? `${results.length} ${results.length === 1 ? "result" : "results"}` : "No results"}</p>
+                {results.map((item) => (
+                  <Link key={`${item.kind}-${item.label}`} href={item.href} className="search-result">
+                    <Icon name={item.icon} size={18} />
+                    <span className="search-result__label">{item.label}</span>
+                    <small>{item.kind}</small>
+                  </Link>
+                ))}
+                {!results.length && <p className="search-empty">Nothing matches “{query.trim()}”. Try a page name like Matters, or a recent chat.</p>}
+              </div>
+            ) : (
+              <>
+                <Link className="new-chat" href="/chat">
+                  <Icon name="plus" size={18} />
+                  <span>New chat</span>
+                </Link>
 
-            <div className="history">
-              <p className="section-label">Recent</p>
-              {recentChats.map((chat) => (
-                <Link href="/chat" key={chat} className="history__link">{chat}</Link>
-              ))}
-            </div>
+                <nav className="nav-group" aria-label="Primary">
+                  {primaryNav.map((item) => <NavLink key={item.href} item={item} />)}
+                </nav>
+
+                <div className="history">
+                  <p className="section-label">Recent</p>
+                  {recentChats.map((chat) => (
+                    <Link href="/chat" key={chat} className="history__link">{chat}</Link>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="sidebar__foot">
