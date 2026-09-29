@@ -23,15 +23,13 @@ for (const viewport of viewports) {
     add({ ...base, check: "loads-no-errors", ok: Boolean(response?.ok()) && errors.length === 0, errors });
     add({ ...base, check: "no-horizontal-overflow", ok: m.scrollWidth <= m.innerWidth + 1, ...m });
 
-    const brand = await page.evaluate(async () => {
-      const mark = document.querySelector(".topbar .brand-mark--clean-sm");
-      if (!(mark instanceof HTMLElement)) return { found: false };
-      const url = getComputedStyle(mark).getPropertyValue("--mark").trim();
-      const res = await fetch(url.replace(/^url\(["']?|["']?\)$/g, ""));
+    const brand = await page.evaluate(() => {
+      const mark = document.querySelector(".topbar img.brand-mark--sapphire-sm");
+      if (!(mark instanceof HTMLImageElement)) return { found: false };
       const r = mark.getBoundingClientRect();
-      return { found: true, fetched: res.ok, w: r.width, h: r.height };
+      return { found: true, fetched: mark.complete && mark.naturalWidth > 0, w: r.width, h: r.height, src: mark.currentSrc.split("/").pop() };
     });
-    add({ ...base, check: "canonical-compact-logo-in-topbar", ok: brand.found && brand.fetched && brand.h >= 32, brand });
+    add({ ...base, check: "canonical-compact-logo-in-topbar", ok: brand.found && brand.fetched && brand.h >= 28 && brand.h <= 44, brand });
 
     if (route.path === "/about/") {
       const imgs = await page.evaluate(() =>
@@ -49,6 +47,16 @@ for (const viewport of viewports) {
     }
 
     if (route.path === "/chat/") {
+      // Silver sword wakes to colour while the composer is in use, then settles back.
+      const wakeOpacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector(".empty-chat .wake-mark__color")).opacity));
+      const idle = await wakeOpacity();
+      await page.getByLabel("Message WindSwordAI").focus();
+      await page.waitForTimeout(500);
+      const awakeOpacity = await wakeOpacity();
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(500);
+      const settled = await wakeOpacity();
+      add({ ...base, check: "sword-wakes-to-colour-when-chat-in-use", ok: idle === 0 && awakeOpacity === 1 && settled === 0, idle, awakeOpacity, settled });
       const before = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1);
       add({ ...base, check: "chat-page-does-not-scroll-body", ok: before });
       await page.getByRole("button", { name: "Add files, photos, or matter context" }).click();

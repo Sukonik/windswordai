@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
 
         <Link className="brand" href="/" aria-label="WindSwordAI home">
-          <BrandMark variant="clean-sm" className="brand__mark" />
+          <BrandMark variant="sapphire-sm" className="brand__mark" />
           <span className="brand__word">WindSwordAI</span>
         </Link>
 
@@ -175,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <div className="sidebar__head">
             <div className="sidebar__brand">
-              <BrandMark variant="clean-sm" className="brand__mark" />
+              <BrandMark variant="sapphire-sm" className="brand__mark" />
               <div>
                 <strong>WindSwordAI</strong>
                 <span><i aria-hidden="true" /> Local Secure</span>

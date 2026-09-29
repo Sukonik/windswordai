@@ -30,8 +30,39 @@ white-blue, in light theme only the base plus a faint beam is shown.
 
 ## Home-screen icons
 
-`public/icons/*` place the colour sword on a dark charcoal stone tile
-(generated noise texture, no artwork change). `icon-maskable-512.png` keeps
-the sword inside the 80% safe zone; `apple-touch-icon.png` is full-bleed
-because iOS applies its own rounded mask. `favicon.ico` and `favicon-32.png`
-use the same tile so the tab icon reads on light and dark browser chrome.
+Superseded by the icon pack below: `public/icons/*` and the favicons now come
+from the supplied stone-tile artwork (see "Icon pack").
+
+## Icon pack (current source of truth)
+
+The seven approved icon-pack files live in `brand-source/icon-pack/` with their
+original usage guide (`WindSwordAI_Icon_Pack_Usage_Guide.md`). They supersede
+the earlier thin line drawing for small marks.
+
+| Pack file | Derived asset | Used for |
+| --- | --- | --- |
+| `ornate_sapphire_winged_sword.png` | `brand/windsword-sapphire-sm.webp` | **Header/menu mark (38–40px)** — colour reads well at this size |
+| `ornate_winged_fantasy_sword.png` | `brand/windsword-line.webp` | Line mark for monochrome/system contexts (not in the header; light theme inverts it to charcoal via CSS) |
+| `winged_fantasy_sword_emblem.png` | `brand/windsword-line-alt.webp` | Alternate line mark for badges/utility surfaces (not yet placed) |
+| `ornate_winged_silver_sword_icon.png` | `brand/windsword-gray.webp` | **Chat screen** empty-state mark |
+| `ornate_sapphire_winged_sword.png` | `brand/windsword-sapphire*.webp`, OG card | Home hero, social card |
+| `winged_sword_on_stone_crest.png` | `icons/stone/*`, top-level `icons/*`, favicons | **Default** PWA / Add to Home Screen / favicon |
+| `angelwing_ruby_sword_emblem.png` | `icons/sand/*` | Light-theme / warm home-screen alternate (not wired to the manifest; iOS cannot switch by theme) |
+| `winged_sword_on_ancient_stone.png` | `icons/ancient-sand/*` | Seasonal / alternate skin |
+
+Tiles are cropped just inside their rounded edge (the sources have black
+corners) and re-rounded with transparent corners. Apple touch icons are
+full-bleed squares; the maskable icon places the tile inside the 80% safe zone
+on blurred stone. Favicons use the stone tile: a thin line crop was
+unrecognizable at 16–32px.
+
+**Note on two colour swords.** The About page's animated layers (aura, wind,
+beam, gem) were rendered over `01_windsword_base_enhanced_transparent` and must
+register exactly over it, so About keeps that base. Home hero, OG and app icons
+use the icon-pack sapphire art. If a single colour sword is wanted everywhere,
+the aura/wind/beam/gem layers need to be regenerated over the sapphire art.
+
+Motion rules from the pack apply: brand animation is rare and subtle, never on
+favicons or app icons, and always honours `prefers-reduced-motion`. Current
+implementation: About ambient layers and a ≤1° desktop hover lift on the header
+mark.

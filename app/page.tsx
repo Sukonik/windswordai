@@ -52,7 +52,7 @@ export default function HomePage() {
 
         <div className="home-stage" role="img" aria-label="WindSwordAI winged sword">
           <div className="home-stage__glow" aria-hidden="true" />
-          <BrandMark variant="color" className="home-stage__color" />
+          <BrandMark variant="sapphire" className="home-stage__color" />
         </div>
       </div>
 
