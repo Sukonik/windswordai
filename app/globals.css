@@ -434,8 +434,12 @@ h2 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
 .empty-chat { display: grid; justify-items: center; align-content: center; min-height: 100%; max-width: 640px; margin: 0 auto; text-align: center; gap: 10px; }
 .wake-mark { position: relative; display: inline-block; aspect-ratio: 329 / 420; flex: none; }
 .wake-mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.wake-mark__color { opacity: 0; transition: opacity 360ms var(--ease), filter 360ms var(--ease); }
+.wake-mark__gray { opacity: 1; transition: opacity 260ms var(--ease); }
+.wake-mark__color { opacity: 0; transition: opacity 360ms var(--ease) 60ms, filter 360ms var(--ease); }
+/* One sword at a time: silver hands over to colour (and back), never stacked. */
+.wake-mark[data-awake="true"] .wake-mark__gray { opacity: 0; }
 .wake-mark[data-awake="true"] .wake-mark__color { opacity: 1; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--blue) 45%, transparent)); }
+.wake-mark[data-awake="false"] .wake-mark__color { transition-delay: 0s; transition-duration: 260ms; }
 .wake-mark[data-working="true"] .wake-mark__color { animation: wake-glow 1.8s ease-in-out infinite; }
 @keyframes wake-glow { 50% { filter: drop-shadow(0 0 20px color-mix(in srgb, var(--blue) 75%, transparent)); } }
 .empty-chat__mark { height: clamp(96px, 20dvh, 156px); margin-bottom: 4px; }
