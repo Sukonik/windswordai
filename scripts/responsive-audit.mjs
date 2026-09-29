@@ -49,6 +49,7 @@ for (const viewport of viewports) {
     if (route.path === "/chat/") {
       // Silver sword wakes to colour while the composer is in use, then settles back.
       const wakeOpacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector(".empty-chat .wake-mark__color")).opacity));
+      const grayOpacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector(".empty-chat .wake-mark__gray")).opacity));
       const idle = await wakeOpacity();
       await page.getByLabel("Message WindSwordAI").focus();
       await page.waitForTimeout(500);
@@ -56,7 +57,15 @@ for (const viewport of viewports) {
       await page.evaluate(() => document.activeElement?.blur());
       await page.waitForTimeout(500);
       const settled = await wakeOpacity();
+      const graySettled = await grayOpacity();
       add({ ...base, check: "sword-wakes-to-colour-when-chat-in-use", ok: idle === 0 && awakeOpacity === 1 && settled === 0, idle, awakeOpacity, settled });
+      add({ ...base, check: "sword-swaps-never-stacks", ok: graySettled === 1, graySettled });
+      await page.getByLabel("Message WindSwordAI").focus();
+      await page.waitForTimeout(500);
+      const grayWhenAwake = await grayOpacity();
+      add({ ...base, check: "silver-hidden-while-colour-shown", ok: grayWhenAwake === 0, grayWhenAwake });
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(400);
       const before = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1);
       add({ ...base, check: "chat-page-does-not-scroll-body", ok: before });
       await page.getByRole("button", { name: "Add files, photos, or matter context" }).click();
