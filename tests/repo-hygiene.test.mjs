@@ -45,6 +45,8 @@ test("no real-looking credentials are committed anywhere", () => {
     [/GOCSPX-[A-Za-z0-9_-]{24,}/, "Google OAuth client secret"],
     [/AIza[0-9A-Za-z_-]{35}/, "Google API key"],
     [/sk-ant-[A-Za-z0-9_-]{20,}/, "Anthropic API key"],
+    [/sb_secret_[A-Za-z0-9_-]{20,}/, "Supabase secret key"],
+    [/SUPABASE_SERVICE_ROLE_KEY[ \t]*=[ \t]*(?!PASTE_|YOUR_|<)[A-Za-z0-9._-]{20,}/, "Supabase service key assignment"],
     [/sk-proj-[A-Za-z0-9_-]{20,}/, "OpenAI API key"],
     [/-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----/, "private key block"],
     [/(?:WINDSWORD_GOOGLE_CLIENT_SECRET|GOOGLE_CLIENT_SECRET)[ \t]*=[ \t]*(?!PASTE_|YOUR_|your-|<)[^\s#'"`$<]{8,}/, "assigned Google client secret"],

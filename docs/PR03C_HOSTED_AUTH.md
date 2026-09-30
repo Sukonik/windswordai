@@ -44,7 +44,8 @@ Who can use it: on the computer running the gateway (loopback only; proxied/fore
 `npm test` (unit + repo-hygiene secret scan) and `npm run review:auth` (real UI + gateway + fake Google issuing real RS256 ID tokens; 49 checks at 390 and 1440 px). Real-Google behaviour is **not** verified until the secret is supplied locally.
 
 ## Browser-only hosted setup (no terminal)
-1. Render dashboard → New → **Blueprint** → choose this repo → Apply (uses `render.yaml` + `Dockerfile`; needs a paid plan because the vault needs a persistent disk).
+See [HOSTING_FREE_ALPHA.md](HOSTING_FREE_ALPHA.md) for the $0 path (Render Free + Supabase Free). Summary:
+1. Render dashboard → New → **Blueprint** → choose this repo → Apply (uses `render.yaml` + `Dockerfile`; free plan; saved setup lives in Supabase).
 2. Open the service → Environment → copy `WINDSWORD_ADMIN_TOKEN`.
 3. Open `https://<your-service>.onrender.com/settings/` → Connections → enter the access code → Google Sign-In → paste Client ID + Secret → Save → Test Connection.
 4. Add the two addresses shown under Advanced to the Google OAuth client, then **Try Google sign-in**.

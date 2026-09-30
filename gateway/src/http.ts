@@ -27,6 +27,8 @@ export interface ServerOptions {
   auth?: AuthService;
   /** WindSword Connect: admin API behind Settings → Connections (connect/api.ts). */
   connect?: ReturnType<typeof createConnectApi>;
+  /** Where state is kept, for diagnostics only. */
+  storage?: "file" | "supabase";
 }
 
 const MIME: Record<string, string> = {
@@ -221,7 +223,7 @@ export function createHttpServer(opts: ServerOptions): Server {
 
       // Health is unauthenticated (no data) so the UI can detect a gateway before a token is entered.
       if (url.pathname === "/v1/health" && req.method === "GET") {
-        return send(res, 200, { ok: true, service: "windsword-gateway", tokenRequired: Boolean(opts.token) && !auth, auth: { mode: auth ? "required" : "off", googleConfigured: Boolean(auth?.googleConfigured) } });
+        return send(res, 200, { ok: true, service: "windsword-gateway", storage: opts.storage ?? "file", tokenRequired: Boolean(opts.token) && !auth, auth: { mode: auth ? "required" : "off", googleConfigured: Boolean(auth?.googleConfigured) } });
       }
 
       // Who am I? Open to everyone (returns no data when signed out); gives the signed-in browser its CSRF token.

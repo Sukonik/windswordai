@@ -1,7 +1,8 @@
 // Node-only. Encrypted credential vault (AES-256-GCM) + persistent connection metadata.
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { toStateIO, type StateIO } from "./state.ts";
 import type { Connection } from "./types.ts";
 import type { ConnectionStore, SecretStore } from "./stores.ts";
 
@@ -27,18 +28,14 @@ export function loadVaultKey(dir: string, env: Record<string, string | undefined
 }
 
 export class FileSecretStore implements SecretStore {
-  private path: string;
+  private io: StateIO;
   private key: Buffer;
-  constructor(dir: string, key: Buffer) {
-    this.path = join(dir, "vault.json");
+  constructor(dirOrIo: string | StateIO, key: Buffer) {
+    this.io = toStateIO(dirOrIo);
     this.key = key;
-    mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   private read(): VaultFile {
-    return existsSync(this.path) ? (JSON.parse(readFileSync(this.path, "utf8")) as VaultFile) : { version: 1, entries: {} };
-  }
-  private write(v: VaultFile) {
-    writeFileSync(this.path, JSON.stringify(v), { mode: 0o600 });
+    return this.io.read<VaultFile>("vault", { version: 1, entries: {} });
   }
   async put(secret: string) {
     const iv = randomBytes(12);
@@ -47,7 +44,7 @@ export class FileSecretStore implements SecretStore {
     const ref = `sec_${randomBytes(9).toString("hex")}`;
     const file = this.read();
     file.entries[ref] = { iv: iv.toString("base64"), tag: cipher.getAuthTag().toString("base64"), ct: ct.toString("base64") };
-    this.write(file);
+    await this.io.write("vault", file);
     return ref;
   }
   async get(ref: string) {
@@ -60,18 +57,17 @@ export class FileSecretStore implements SecretStore {
   async delete(ref: string) {
     const file = this.read();
     delete file.entries[ref];
-    this.write(file);
+    await this.io.write("vault", file);
   }
 }
 
 export class FileConnectionStore implements ConnectionStore {
-  private path: string;
-  constructor(dir: string) {
-    this.path = join(dir, "connections.json");
-    mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 });
+  private io: StateIO;
+  constructor(dirOrIo: string | StateIO) {
+    this.io = toStateIO(dirOrIo);
   }
   private read(): Record<string, Connection> {
-    return existsSync(this.path) ? (JSON.parse(readFileSync(this.path, "utf8")) as Record<string, Connection>) : {};
+    return this.io.read<Record<string, Connection>>("connections", {});
   }
   async get(id: string) {
     return this.read()[id];
@@ -79,12 +75,12 @@ export class FileConnectionStore implements ConnectionStore {
   async set(c: Connection) {
     const all = this.read();
     all[c.providerId] = c;
-    writeFileSync(this.path, JSON.stringify(all, null, 2), { mode: 0o600 });
+    await this.io.write("connections", all);
   }
   async delete(id: string) {
     const all = this.read();
     delete all[id];
-    writeFileSync(this.path, JSON.stringify(all, null, 2), { mode: 0o600 });
+    await this.io.write("connections", all);
   }
   async all() {
     return Object.values(this.read());

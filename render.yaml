@@ -1,21 +1,22 @@
-# One-click hosting on Render (browser only): Render dashboard -> New -> Blueprint -> pick this repo -> Apply.
-# Then open the service's Environment tab, copy WINDSWORD_ADMIN_TOKEN, and visit  <your-url>/setup/google
+# Free alpha hosting (browser only): Render dashboard -> New -> Blueprint -> pick this repo -> Apply.
+# Render Free has no permanent disk, so saved setup lives in a free Supabase table (see docs/HOSTING_FREE_ALPHA.md).
+# The public address stays https://windswordai.onrender.com as long as the service keeps the name "windswordai".
 services:
   - type: web
     name: windswordai
     runtime: docker
-    plan: starter            # a persistent disk (for the encrypted vault) needs a paid plan
+    plan: free               # sleeps when idle; the first visit after a pause takes a little longer
     healthCheckPath: /v1/health
-    disk:
-      name: windsword-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: WINDSWORD_AUTH
         value: required      # nobody gets in without Google sign-in
       - key: WINDSWORD_HOST
         value: 0.0.0.0
-      - key: WINDSWORD_STATE_DIR
-        value: /data
       - key: WINDSWORD_ADMIN_TOKEN
-        generateValue: true  # the code that unlocks the browser setup page; Render shows it in Environment
+        generateValue: true  # the code that unlocks Settings -> Connections
+      - key: WINDSWORD_VAULT_KEY
+        generateValue: true  # encrypts saved secrets; must never change once secrets are saved
+      - key: SUPABASE_URL
+        sync: false          # paste in the Render dashboard (Supabase: Project Settings -> API -> Project URL)
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false          # paste in the Render dashboard (Supabase: Project Settings -> API keys -> secret key)
