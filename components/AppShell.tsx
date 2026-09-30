@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Ke
 import { BrandMark } from "@/components/BrandMark";
 import { useGateway } from "@/components/GatewayProvider";
 import { Icon } from "@/components/Icon";
+import { LoginGate } from "@/components/LoginGate";
 import { ThemeButton, ThemeSegment } from "@/components/ThemeToggle";
 
 const primaryNav = [
@@ -50,7 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
   }, [pathname]);
   const router = useRouter();
-  const { mode } = useGateway();
+  const { mode, status, user, signOut } = useGateway();
   const modeLabel = mode === "secure_local" ? "Secure Local" : "Standard";
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -255,6 +256,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="sidebar__foot">
+            {user && (
+              <div className="account">
+                <span className="account__avatar" aria-hidden="true">{(user.name ?? user.email).slice(0, 1).toUpperCase()}</span>
+                <div className="account__meta">
+                  <strong>{user.name ?? user.email}</strong>
+                  <small>{user.email}</small>
+                </div>
+                <button type="button" className="btn btn--small" onClick={() => { close(); void signOut(); }}>Sign out</button>
+              </div>
+            )}
             <div className="sidebar__appearance">
               <p className="section-label">Appearance</p>
               <ThemeSegment />
@@ -277,7 +288,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <main id="main-content" tabIndex={-1} className={isChat ? "content content--chat" : "content"}>
-          {children}
+          {status.state === "login_required" ? <LoginGate url={status.url} googleConfigured={status.googleConfigured} /> : children}
         </main>
       </div>
     </div>

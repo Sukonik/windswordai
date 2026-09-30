@@ -864,3 +864,17 @@ body[data-sheet-open="true"] { overflow: hidden; }
   .about-layer--beam { opacity: .5; }
   .about-layer--gem { opacity: .35; }
 }
+
+/* -- Sign-in gate + account row ------------------------------------------------- */
+.login-gate { max-width: 440px; margin: 6vh auto 0; display: grid; justify-items: center; gap: 14px; text-align: center; }
+.login-gate__mark { height: 72px; }
+.login-gate h1 { font-size: clamp(26px, 7vw, 34px); }
+.login-gate p { color: var(--text-soft); font-size: 15px; }
+.login-gate .btn { width: 100%; }
+.login-gate__fine { color: var(--muted) !important; font-size: 13px !important; }
+.account { display: flex; align-items: center; gap: 10px; padding: 4px 4px 12px; }
+.account__avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--blue) 22%, var(--surface-2)); border: 1px solid var(--line-strong); font-weight: 700; }
+.account__meta { flex: 1; min-width: 0; display: grid; }
+.account__meta strong, .account__meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account__meta strong { font-size: 14px; }
+.account__meta small { color: var(--muted); font-size: 12px; }

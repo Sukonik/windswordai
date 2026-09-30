@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createDemoTransport, detectTransport, type GatewaySettings, type GatewayStatus, type Transport } from "@/lib/gateway/client";
+import { createDemoTransport, detectTransport, type GatewaySettings, type GatewayStatus, type SignedInUser, type Transport } from "@/lib/gateway/client";
 import { loadGatewaySettings, loadMode, saveGatewaySettings, saveMode } from "@/lib/gateway/settings";
 import type { ExecutionMode, ProviderView } from "@/gateway/src/types";
 
@@ -19,6 +19,9 @@ interface GatewayContextValue {
   /** Set when the browser just returned from an account-linking redirect. */
   linked?: { providerId: string; ok: boolean };
   clearLinked: () => void;
+  /** The signed-in WindSwordAI user (hosted mode), if any. */
+  user?: SignedInUser;
+  signOut: () => Promise<void>;
 }
 
 const GatewayContext = createContext<GatewayContextValue | null>(null);
@@ -45,7 +48,14 @@ export function GatewayProvider({ children }: { children: ReactNode }) {
       setProviders(await t.providers(m));
       setError(undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load providers.");
+      if ((err as { code?: string })?.code === "login_required") {
+        // The session ended (expired or signed out elsewhere): fall back to the sign-in screen.
+        setStatus((current) => (current.state === "connected" ? { state: "login_required", url: current.url, googleConfigured: true } : current));
+        setProviders([]);
+        setError(undefined);
+      } else {
+        setError(err instanceof Error ? err.message : "Could not load providers.");
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +66,13 @@ export function GatewayProvider({ children }: { children: ReactNode }) {
     const found = await detectTransport(s);
     setTransport(found.transport);
     setStatus(found.status);
+    if (found.status.state === "login_required") {
+      // Signed out on a hosted gateway: nothing to load until sign-in (avoids a pointless 401).
+      setProviders([]);
+      setError(undefined);
+      setLoading(false);
+      return;
+    }
     await load(found.transport, modeRef.current);
   }, [load]);
 
@@ -100,9 +117,18 @@ export function GatewayProvider({ children }: { children: ReactNode }) {
 
   const clearLinked = useCallback(() => setLinked(undefined), []);
 
+  const signOut = useCallback(async () => {
+    try {
+      await transport.logout?.();
+    } finally {
+      await connectTo(settings);
+    }
+  }, [transport, connectTo, settings]);
+
+
   const value = useMemo(
-    () => ({ status, transport, mode, setMode, providers, loading, error, refresh, settings, saveSettings, linked, clearLinked }),
-    [status, transport, mode, setMode, providers, loading, error, refresh, settings, saveSettings, linked, clearLinked],
+    () => ({ status, transport, mode, setMode, providers, loading, error, refresh, settings, saveSettings, linked, clearLinked, user: status.state === "connected" ? status.user : undefined, signOut }),
+    [status, transport, mode, setMode, providers, loading, error, refresh, settings, saveSettings, linked, clearLinked, signOut],
   );
   return <GatewayContext.Provider value={value}>{children}</GatewayContext.Provider>;
 }

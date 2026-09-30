@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import { timingSafeEqual } from "node:crypto";
+import { AuthService, LoginError, buildCookie, parseCookies, type User } from "./auth.ts";
 import type { Gateway } from "./gateway.ts";
 import { sanitizeReturnTo } from "./oauth.ts";
 import { ProviderError } from "./types.ts";
@@ -21,6 +22,8 @@ export interface ServerOptions {
   maxBodyBytes?: number;
   /** Public base URL of this gateway (used for OAuth redirect URIs). Defaults to the request Host. */
   publicUrl?: string;
+  /** WindSwordAI sign-in and sessions. Mode `required` gates the whole API behind a signed-in user. */
+  auth?: AuthService;
 }
 
 const MIME: Record<string, string> = {
@@ -39,7 +42,8 @@ function safeEqual(a: string, b: string) {
 
 export function createHttpServer(opts: ServerOptions): Server {
   const host = opts.host ?? "127.0.0.1";
-  if (!isLoopback(host) && !opts.token) throw new Error("A gateway token is required when binding beyond loopback.");
+  if (!isLoopback(host) && !opts.token && opts.auth?.mode !== "required") throw new Error("A gateway token is required when binding beyond loopback (or enable sign-in with WINDSWORD_AUTH=required).");
+  const auth = opts.auth && opts.auth.mode === "required" ? opts.auth : undefined;
   const max = opts.maxBodyBytes ?? 1_000_000;
   const allowed = new Set(opts.allowedOrigins ?? []);
 
@@ -48,7 +52,8 @@ export function createHttpServer(opts: ServerOptions): Server {
     if (origin && allowed.has(origin)) {
       res.setHeader("access-control-allow-origin", origin);
       res.setHeader("vary", "origin");
-      res.setHeader("access-control-allow-headers", "authorization, content-type");
+      res.setHeader("access-control-allow-headers", "authorization, content-type, x-csrf-token");
+      res.setHeader("access-control-allow-credentials", "true");
       res.setHeader("access-control-allow-methods", "GET, POST, DELETE, OPTIONS");
     }
   }
@@ -76,6 +81,45 @@ export function createHttpServer(opts: ServerOptions): Server {
     return header.startsWith("Bearer ") && safeEqual(header.slice(7), opts.token);
   }
 
+  interface Identity { gateway: Gateway; user?: User; csrf?: string; sessionId?: string; via: "open" | "session" | "bearer" }
+
+  function bearerOk(req: IncomingMessage) {
+    return authorized(req);
+  }
+
+  /** Who is calling? Session cookie (sign-in required mode), gateway bearer token, or open local access. */
+  async function identify(req: IncomingMessage): Promise<Identity | undefined> {
+    if (!auth) return authorized(req) ? { gateway: opts.gateway, via: "open" } : undefined;
+    const session = await auth.authenticate(req.headers.cookie);
+    if (session) return { gateway: opts.gateway.forUser(session.user.id), user: session.user, csrf: session.csrf, sessionId: session.sessionId, via: "session" };
+    if (opts.token && bearerOk(req)) return { gateway: opts.gateway.forUser("token"), via: "bearer" };
+    return undefined;
+  }
+
+  const requestOrigin = () => (opts.publicUrl ? new URL(opts.publicUrl).origin : undefined);
+
+  /** State-changing calls made with a session cookie need the CSRF token and a same-origin (or allowed) Origin. */
+  function csrfProblem(req: IncomingMessage, id: Identity): { status: number; code: string; message: string } | undefined {
+    if (id.via !== "session" || req.method === "GET" || req.method === "HEAD") return undefined;
+    const origin = req.headers.origin;
+    if (origin) {
+      const sameOrigin = origin === (requestOrigin() ?? `http://${req.headers.host}`) || origin === `https://${req.headers.host}`;
+      if (!sameOrigin && !allowed.has(origin)) return { status: 403, code: "bad_origin", message: "Request origin not allowed." };
+    }
+    const sent = String(req.headers["x-csrf-token"] ?? "");
+    if (!id.csrf || !sent || !safeEqual(sent, id.csrf)) return { status: 403, code: "csrf", message: "Missing or invalid CSRF token." };
+    return undefined;
+  }
+
+  function redirectBase(req: IncomingMessage) {
+    return opts.publicUrl ?? `http://${req.headers.host ?? "127.0.0.1"}`;
+  }
+
+  function htmlPage(res: ServerResponse, status: number, title: string, body: string) {
+    res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" });
+    res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="font:16px system-ui;padding:24px;max-width:36rem"><h1>${title}</h1>${body}<p><a href="/">Back to WindSwordAI</a></p>`);
+  }
+
   function serveStatic(req: IncomingMessage, res: ServerResponse, pathname: string) {
     const root = opts.staticDir;
     if (!root || !existsSync(root)) { res.writeHead(404).end("Not found"); return; }
@@ -97,13 +141,56 @@ export function createHttpServer(opts: ServerOptions): Server {
     try {
       if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
 
+      // ---- WindSwordAI sign-in (Google). Identity only: openid email profile.
+      if (url.pathname === "/auth/google/start" && req.method === "GET") {
+        if (!auth?.googleConfigured) return htmlPage(res, 404, "Sign-in is not enabled", "<p>Google sign-in is not configured on this gateway.</p>");
+        const base = redirectBase(req);
+        const baseUrl = new URL(base);
+        if (baseUrl.protocol !== "https:" && !isLoopback(baseUrl.hostname)) {
+          return htmlPage(res, 400, "Use https or localhost", "<p>Google only allows sign-in redirects to <code>https://</code> addresses or <code>localhost</code>. Open WindSwordAI at <code>http://localhost:8787</code>, or use the hosted HTTPS address.</p>");
+        }
+        const started = auth.startLogin({ returnTo: url.searchParams.get("returnTo") ?? undefined, redirectBase: base });
+        res.writeHead(302, {
+          location: started.url,
+          "set-cookie": buildCookie(auth.loginCookie, started.state, { maxAge: 600, secure: auth.secure, path: "/oauth/callback/google" }),
+          "cache-control": "no-store",
+          "referrer-policy": "no-referrer",
+        });
+        res.end();
+        return;
+      }
+
       const cb = url.pathname.match(/^\/oauth\/callback\/([a-z0-9_-]+)$/);
+      if (cb && cb[1] === "google" && auth?.googleConfigured && req.method === "GET") {
+        try {
+          const done = await auth.completeLogin({ code: url.searchParams.get("code"), state: url.searchParams.get("state"), error: url.searchParams.get("error"), cookieState: parseCookies(req.headers.cookie)[auth.loginCookie] });
+          res.writeHead(302, {
+            location: sanitizeReturnTo(done.returnTo, "/chat/"),
+            "set-cookie": [
+              buildCookie(auth.sessionCookie, done.sessionId, { maxAge: auth.maxAgeSeconds, secure: auth.secure }),
+              buildCookie(auth.loginCookie, "", { maxAge: 0, secure: auth.secure, path: "/oauth/callback/google" }),
+            ],
+            "cache-control": "no-store",
+            "referrer-policy": "no-referrer",
+          });
+        } catch (err) {
+          const e = err instanceof LoginError ? err : new LoginError("failed", "Sign-in failed.");
+          const dest = new URL(sanitizeReturnTo(e.returnTo, "/chat/"), "http://gateway.local");
+          dest.searchParams.set("login_error", e.code);
+          res.writeHead(302, { location: dest.pathname + dest.search, "set-cookie": buildCookie(auth.loginCookie, "", { maxAge: 0, secure: auth.secure, path: "/oauth/callback/google" }), "cache-control": "no-store", "referrer-policy": "no-referrer" });
+        }
+        res.end();
+        return;
+      }
+
       if (cb && req.method === "GET") {
         // Provider redirects the browser here. Protected by single-use state + PKCE, not a bearer header.
         let target = "/settings/";
         let ok = false;
         try {
-          const result = await opts.gateway.completeOAuth(cb[1], { code: url.searchParams.get("code"), state: url.searchParams.get("state"), error: url.searchParams.get("error") });
+          const who = await identify(req);
+          if (auth && !who) throw new ProviderError("auth_failed", "Sign in first.");
+          const result = await (who?.gateway ?? opts.gateway).completeOAuth(cb[1], { code: url.searchParams.get("code"), state: url.searchParams.get("state"), error: url.searchParams.get("error") });
           ok = result.ok;
           target = sanitizeReturnTo(result.returnTo);
         } catch {
@@ -125,42 +212,70 @@ export function createHttpServer(opts: ServerOptions): Server {
 
       // Health is unauthenticated (no data) so the UI can detect a gateway before a token is entered.
       if (url.pathname === "/v1/health" && req.method === "GET") {
-        return send(res, 200, { ok: true, service: "windsword-gateway", tokenRequired: Boolean(opts.token) });
+        return send(res, 200, { ok: true, service: "windsword-gateway", tokenRequired: Boolean(opts.token) && !auth, auth: { mode: auth ? "required" : "off", googleConfigured: Boolean(auth?.googleConfigured) } });
       }
-      if (!authorized(req)) return send(res, 401, { error: { code: "unauthorized", message: "A valid gateway token is required." } });
+
+      // Who am I? Open to everyone (returns no data when signed out); gives the signed-in browser its CSRF token.
+      if (url.pathname === "/v1/auth/me" && req.method === "GET") {
+        const who = await identify(req);
+        return send(res, 200, {
+          mode: auth ? "required" : "off",
+          googleConfigured: Boolean(auth?.googleConfigured),
+          authenticated: Boolean(who && who.via !== "open"),
+          user: who?.user ? { name: who.user.name, email: who.user.email } : undefined,
+          csrfToken: who?.via === "session" ? who.csrf : undefined,
+        });
+      }
+
+      const who = await identify(req);
+      if (!who) {
+        return send(res, 401, auth
+          ? { error: { code: "login_required", message: "Sign in to continue." } }
+          : { error: { code: "unauthorized", message: "A valid gateway token is required." } });
+      }
+      const csrf = csrfProblem(req, who);
+      if (csrf) return send(res, csrf.status, { error: { code: csrf.code, message: csrf.message } });
+      const gateway = who.gateway;
+
+      if (url.pathname === "/v1/auth/logout" && req.method === "POST") {
+        if (who.sessionId && auth) await auth.logout(who.sessionId);
+        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "set-cookie": auth ? buildCookie(auth.sessionCookie, "", { maxAge: 0, secure: auth.secure }) : "" });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
 
       if (url.pathname === "/v1/providers" && req.method === "GET") {
         const mode = (url.searchParams.get("mode") as ExecutionMode) || "secure_local";
         if (!MODES.includes(mode)) throw new ProviderError("bad_request", "Unknown mode.");
-        return send(res, 200, { mode, providers: await opts.gateway.listProviders(mode) });
+        return send(res, 200, { mode, providers: await gateway.listProviders(mode) });
       }
 
       const oauthStart = url.pathname.match(/^\/v1\/connections\/([a-z0-9_-]+)\/oauth\/start$/);
       if (oauthStart && req.method === "POST") {
         const body = await readJson(req);
         const redirectBase = opts.publicUrl ?? `http://${req.headers.host ?? "127.0.0.1"}`;
-        return send(res, 200, { authorizeUrl: opts.gateway.beginOAuth(oauthStart[1], { returnTo: sanitizeReturnTo(body.returnTo), redirectBase }) });
+        return send(res, 200, { authorizeUrl: gateway.beginOAuth(oauthStart[1], { returnTo: sanitizeReturnTo(body.returnTo), redirectBase }) });
       }
 
       const conn = url.pathname.match(/^\/v1\/connections\/([a-z0-9_-]+)$/);
       if (conn && req.method === "POST") {
         const body = await readJson(req);
-        const view = await opts.gateway.connect(conn[1], { type: body.type, apiKey: body.apiKey, baseUrl: body.baseUrl, label: body.label });
+        const view = await gateway.connect(conn[1], { type: body.type, apiKey: body.apiKey, baseUrl: body.baseUrl, label: body.label });
         return send(res, 200, { provider: view });
       }
       if (conn && req.method === "DELETE") {
-        await opts.gateway.disconnect(conn[1]);
+        await gateway.disconnect(conn[1]);
         return send(res, 200, { ok: true });
       }
 
       if (url.pathname === "/v1/preflight" && req.method === "POST") {
         const body = await readJson(req);
         if (!MODES.includes(body.mode)) throw new ProviderError("bad_request", "Unknown mode.");
-        return send(res, 200, { decisions: await opts.gateway.preflight({ mode: body.mode, contentClass: body.contentClass ?? "general", attachmentCount: body.attachmentCount ?? 0 }, Array.isArray(body.providers) ? body.providers : []) });
+        return send(res, 200, { decisions: await gateway.preflight({ mode: body.mode, contentClass: body.contentClass ?? "general", attachmentCount: body.attachmentCount ?? 0 }, Array.isArray(body.providers) ? body.providers : []) });
       }
 
       if (url.pathname === "/v1/audit" && req.method === "GET") {
-        return send(res, 200, { events: opts.gateway.audit.recent(Math.min(200, Number(url.searchParams.get("limit")) || 50)) });
+        return send(res, 200, { events: gateway.audit.recent(Math.min(200, Number(url.searchParams.get("limit")) || 50)) });
       }
 
       if (url.pathname === "/v1/chat" && req.method === "POST") {
@@ -171,7 +286,7 @@ export function createHttpServer(opts: ServerOptions): Server {
         const controller = new AbortController();
         res.on("close", () => { if (!res.writableEnded) controller.abort(); });
         res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive", "x-accel-buffering": "no" });
-        for await (const event of opts.gateway.chat({ ...body, contentClass: body.contentClass ?? "general" }, controller.signal)) {
+        for await (const event of gateway.chat({ ...body, contentClass: body.contentClass ?? "general" }, controller.signal)) {
           if (res.destroyed) break;
           res.write(`data: ${JSON.stringify(event)}\n\n`);
         }

@@ -1,9 +1,10 @@
 // Fake vendor APIs (Anthropic-shaped and OpenAI-shaped) for offline end-to-end tests.
 // Run standalone:  node scripts/fake-providers.mjs 9911
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createSign, generateKeyPairSync, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 
 export const FAKE_KEYS = { claude: "sk-fake-claude-000111", openai: "sk-fake-openai-000222" };
+export const FAKE_GOOGLE = { clientId: "e2e-google-client.apps.googleusercontent.com", clientSecret: "e2e-google-secret-not-real" };
 export const FAKE_OAUTH = { clientId: "e2e-client", clientSecret: "e2e-client-secret", scope: "scope.generate" };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -12,6 +13,11 @@ export function startFakeProviders(port = 0) {
   const requests = [];
   // Fake OAuth 2.0 authorization server: verifies PKCE S256 like a real one.
   const codes = new Map(); // code -> { challenge, redirectUri }
+  // Fake Google (sign-in): signs real RS256 ID tokens and serves a JWKS. Identity is chosen by the test.
+  const gkeys = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const gjwk = { ...gkeys.publicKey.export({ format: "jwk" }), kid: "e2e-key", alg: "RS256", use: "sig" };
+  const google = { next: { sub: "sub-alice", email: "alice@example.com", name: "Alice Example" }, codes: new Map(), logins: [], tokenGrants: [] };
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
   const oauth = { authorizations: [], tokenGrants: [], revocations: [], accessTokens: new Set(), refreshTokens: new Set() };
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
@@ -20,6 +26,39 @@ export function startFakeProviders(port = 0) {
     requests.push({ method: req.method, path: url.pathname, headers: req.headers, body });
     const send = (status, obj) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
 
+
+
+    // ---- Fake Google sign-in (OpenID Connect)
+    if (url.pathname === "/google/_next" && req.method === "POST") { google.next = JSON.parse(body); return send(200, { ok: true }); }
+    if (url.pathname === "/google/certs") return send(200, { keys: [gjwk] });
+    if (url.pathname === "/google/authorize" && req.method === "GET") {
+      const q = url.searchParams;
+      google.logins.push({ scope: q.get("scope"), method: q.get("code_challenge_method"), hasNonce: Boolean(q.get("nonce")), clientId: q.get("client_id") });
+      if (q.get("client_id") !== FAKE_GOOGLE.clientId || q.get("code_challenge_method") !== "S256") return send(400, { error: "invalid_request" });
+      const back = new URL(q.get("redirect_uri"));
+      back.searchParams.set("state", q.get("state"));
+      if (google.next.deny) back.searchParams.set("error", "access_denied");
+      else {
+        const code = `gcode-${randomBytes(6).toString("hex")}`;
+        google.codes.set(code, { challenge: q.get("code_challenge"), nonce: q.get("nonce"), redirectUri: q.get("redirect_uri"), identity: google.next });
+        back.searchParams.set("code", code);
+      }
+      res.writeHead(302, { location: back.toString() });
+      return res.end();
+    }
+    if (url.pathname === "/google/token" && req.method === "POST") {
+      const f = new URLSearchParams(body);
+      google.tokenGrants.push({ hasVerifier: Boolean(f.get("code_verifier")), secretOk: f.get("client_secret") === FAKE_GOOGLE.clientSecret });
+      const entry = google.codes.get(f.get("code"));
+      google.codes.delete(f.get("code"));
+      const pkce = entry && createHash("sha256").update(f.get("code_verifier") ?? "").digest("base64url") === entry.challenge;
+      if (!entry || !pkce || f.get("client_secret") !== FAKE_GOOGLE.clientSecret || f.get("client_id") !== FAKE_GOOGLE.clientId) return send(400, { error: "invalid_grant" });
+      const now = Math.floor(Date.now() / 1000);
+      const payload = { iss: "https://accounts.google.com", aud: FAKE_GOOGLE.clientId, azp: FAKE_GOOGLE.clientId, sub: entry.identity.sub, email: entry.identity.email, email_verified: entry.identity.email_verified ?? true, name: entry.identity.name, nonce: entry.nonce, iat: now, exp: now + 3600 };
+      const input = `${b64({ alg: "RS256", kid: "e2e-key", typ: "JWT" })}.${b64(payload)}`;
+      const idToken = `${input}.${createSign("RSA-SHA256").update(input).sign(gkeys.privateKey).toString("base64url")}`;
+      return send(200, { access_token: "ya29.e2e-google-access", id_token: idToken, expires_in: 3600 });
+    }
 
     // ---- Fake OAuth authorization server (auto-approves; a real IdP would show a consent screen)
     if (url.pathname === "/oauth/authorize" && req.method === "GET") {
@@ -121,7 +160,7 @@ export function startFakeProviders(port = 0) {
     }
     send(404, { error: "not found" });
   });
-  return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve({ server, port: server.address().port, requests, oauth })));
+  return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve({ server, port: server.address().port, requests, oauth, google })));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

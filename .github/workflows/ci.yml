@@ -64,6 +64,7 @@ jobs:
           npm run review:responsive
           npm run review:screenshots
           npm run review:gateway
+          npm run review:auth
 
       - name: Upload review artifact
         uses: actions/upload-artifact@v4

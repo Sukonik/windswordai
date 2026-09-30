@@ -18,6 +18,8 @@ export interface Transport {
   disconnect(providerId: string): Promise<void>;
   /** Begin delegated account linking; resolves to the provider authorization URL to navigate to. */
   startOAuth(providerId: string, returnTo: string): Promise<string>;
+  /** End the signed-in session (hosted gateways that require sign-in). */
+  logout?(): Promise<void>;
 }
 
 export interface GatewaySettings {
@@ -25,11 +27,17 @@ export interface GatewaySettings {
   token?: string;
 }
 
+export interface SignedInUser {
+  name?: string;
+  email: string;
+}
+
 export type GatewayStatus =
   | { state: "checking" }
   | { state: "demo" }
-  | { state: "connected"; url: string }
-  | { state: "needs_token"; url: string };
+  | { state: "connected"; url: string; user?: SignedInUser }
+  | { state: "needs_token"; url: string }
+  | { state: "login_required"; url: string; googleConfigured: boolean };
 
 /** Demo transport: same core, policy and mock adapter, running in the browser. Cloud providers cannot be connected. */
 export function createDemoTransport(): Transport {
@@ -54,16 +62,17 @@ function apiUrl(base: string, path: string) {
   return new URL(path, root.endsWith("/") ? root : `${root}/`).toString();
 }
 
-export function createHttpTransport(url: string, token?: string): Transport {
+export function createHttpTransport(url: string, token?: string, csrf?: () => string | undefined): Transport {
   const headers = (json = true): Record<string, string> => ({
     ...(json ? { "content-type": "application/json" } : {}),
     ...(token ? { authorization: `Bearer ${token}` } : {}),
+    ...(csrf?.() ? { "x-csrf-token": csrf()! } : {}),
   });
 
   async function json<T>(path: string, init?: RequestInit): Promise<T> {
     let res: Response;
     try {
-      res = await fetch(apiUrl(url, path), { ...init, headers: { ...headers(Boolean(init?.body)), ...(init?.headers as object) } });
+      res = await fetch(apiUrl(url, path), { ...init, credentials: "include", headers: { ...headers(Boolean(init?.body)), ...(init?.headers as object) } });
     } catch {
       throw new ProviderError("network", "Could not reach the WindSwordAI gateway.", true);
     }
@@ -81,7 +90,7 @@ export function createHttpTransport(url: string, token?: string): Transport {
     async *chat(req, signal) {
       let res: Response;
       try {
-        res = await fetch(apiUrl(url, "/v1/chat"), { method: "POST", headers: headers(), body: JSON.stringify(req), signal });
+        res = await fetch(apiUrl(url, "/v1/chat"), { method: "POST", credentials: "include", headers: headers(), body: JSON.stringify(req), signal });
       } catch (err) {
         yield err instanceof DOMException && err.name === "AbortError"
           ? { type: "error", code: "cancelled", message: "Cancelled.", retryable: true }
@@ -113,15 +122,27 @@ export function createHttpTransport(url: string, token?: string): Transport {
     async startOAuth(providerId, returnTo) {
       return (await json<{ authorizeUrl: string }>(`/v1/connections/${providerId}/oauth/start`, { method: "POST", body: JSON.stringify({ returnTo }) })).authorizeUrl;
     },
+    async logout() {
+      await json("/v1/auth/logout", { method: "POST", body: "{}" });
+    },
   };
 }
 
-async function probe(url: string): Promise<{ ok: boolean; tokenRequired?: boolean }> {
+async function fetchMe(url: string): Promise<{ authenticated?: boolean; googleConfigured?: boolean; csrfToken?: string; user?: SignedInUser } | undefined> {
+  try {
+    const res = await fetch(apiUrl(url, "/v1/auth/me"), { credentials: "include", signal: AbortSignal.timeout(3000) });
+    return res.ok ? await res.json() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function probe(url: string): Promise<{ ok: boolean; tokenRequired?: boolean; authRequired?: boolean }> {
   try {
     const res = await fetch(apiUrl(url, "/v1/health"), { signal: AbortSignal.timeout(1500) });
     if (!res.ok) return { ok: false };
     const body = await res.json();
-    return body?.service === "windsword-gateway" ? { ok: true, tokenRequired: Boolean(body.tokenRequired) } : { ok: false };
+    return body?.service === "windsword-gateway" ? { ok: true, tokenRequired: Boolean(body.tokenRequired), authRequired: body.auth?.mode === "required" } : { ok: false };
   } catch {
     return { ok: false };
   }
@@ -139,6 +160,15 @@ export async function detectTransport(settings: GatewaySettings): Promise<{ tran
     const found = await probe(url);
     if (!found.ok) continue;
     const resolved = url || (typeof location !== "undefined" ? location.origin : "");
+    if (found.authRequired) {
+      // Hosted mode: identity comes from a server-side session cookie, never from browser storage.
+      const me = await fetchMe(url);
+      if (!me?.authenticated) {
+        return { transport: createHttpTransport(url, settings.token), status: { state: "login_required", url: resolved, googleConfigured: Boolean(me?.googleConfigured) } };
+      }
+      const csrfToken = me.csrfToken as string | undefined;
+      return { transport: createHttpTransport(url, settings.token, () => csrfToken), status: { state: "connected", url: resolved, user: me.user } };
+    }
     if (found.tokenRequired && !settings.token) {
       return { transport: createDemoTransport(), status: { state: "needs_token", url: resolved } };
     }

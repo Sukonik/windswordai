@@ -2,7 +2,7 @@ import { AuditLog, decisionSummary, requestCounts } from "./audit.ts";
 import { decideRequest } from "./policy.ts";
 import type { ProviderRegistry } from "./registry.ts";
 import type { ConnectionStore, SecretStore } from "./stores.ts";
-import { MemoryConnectionStore, MemorySecretStore } from "./stores.ts";
+import { MemoryConnectionStore, MemorySecretStore, ScopedConnectionStore } from "./stores.ts";
 import type {
   AdapterContext, ChatRequest, Connection, ConnectionType, ErrorCode, ExecutionMode, ModelDescriptor, PolicyDecision, ProviderView, StreamEvent,
 } from "./types.ts";
@@ -23,6 +23,8 @@ export interface GatewayOptions {
   probeLocal?: boolean;
   /** Delegated account linking (OAuth authorization code + PKCE). Server only. */
   oauth?: OAuthManager;
+  /** Set on per-user gateways created by forUser(). */
+  actor?: string;
 }
 
 export interface ConnectInput {
@@ -58,8 +60,14 @@ export class Gateway {
   private probeLocal: boolean;
   private oauth?: OAuthManager;
   private refreshing = new Map<string, Promise<StoredTokens>>();
+  private options: GatewayOptions;
+  private perUser = new Map<string, Gateway>();
+  /** The user this gateway acts for (hosted mode). Undefined for the single-user local gateway. */
+  readonly actor?: string;
 
   constructor(opts: GatewayOptions) {
+    this.options = opts;
+    this.actor = opts.actor;
     this.registry = opts.registry;
     this.audit = opts.audit ?? new AuditLog();
     this.secrets = opts.secrets ?? new MemorySecretStore();
@@ -69,6 +77,20 @@ export class Gateway {
     this.timeoutMs = opts.requestTimeoutMs ?? 120_000;
     this.probeLocal = opts.probeLocal ?? false;
     this.oauth = opts.oauth;
+  }
+
+  /**
+   * A gateway bound to one signed-in user: same registry, secrets vault, policy and audit sink, but
+   * connections are namespaced per user and audit events carry that user's opaque id.
+   */
+  forUser(userId: string): Gateway {
+    if (this.actor) throw new Error("forUser() must be called on the root gateway.");
+    let scoped = this.perUser.get(userId);
+    if (!scoped) {
+      scoped = new Gateway({ ...this.options, connections: new ScopedConnectionStore(this.connections, userId), audit: this.audit.scoped(userId), actor: userId });
+      this.perUser.set(userId, scoped);
+    }
+    return scoped;
   }
 
   private async isConnected(providerId: string): Promise<boolean> {
@@ -186,7 +208,7 @@ export class Gateway {
   /** Start delegated account linking. Returns the provider's authorization URL for the browser to visit. */
   beginOAuth(providerId: string, opts: { returnTo?: string; redirectBase: string }): string {
     if (!this.oauth || !this.registry.get(providerId)) throw new ProviderError("bad_request", "Account linking is not available for that provider.");
-    return this.oauth.start(providerId, opts);
+    return this.oauth.start(providerId, { ...opts, userId: this.actor });
   }
 
   /**
@@ -198,7 +220,7 @@ export class Gateway {
     if (!this.oauth || !adapter) throw new ProviderError("bad_request", "Account linking is not available for that provider.");
     let returnTo: string | undefined;
     try {
-      const done = await this.oauth.complete(providerId, params);
+      const done = await this.oauth.complete(providerId, params, this.actor);
       returnTo = done.returnTo;
       const ctx: AdapterContext = { fetch: this.fetchImpl, baseUrl: done.baseUrl, credentialKind: "bearer", getSecret: async () => done.tokens.accessToken, signal: AbortSignal.timeout(20_000) };
       const models = await adapter.listModels(ctx);
