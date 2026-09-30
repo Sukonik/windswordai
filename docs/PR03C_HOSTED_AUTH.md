@@ -43,10 +43,5 @@ Who can use it: on the computer running the gateway (loopback only; proxied/fore
 ## Verification
 `npm test` (unit + repo-hygiene secret scan) and `npm run review:auth` (real UI + gateway + fake Google issuing real RS256 ID tokens; 49 checks at 390 and 1440 px). Real-Google behaviour is **not** verified until the secret is supplied locally.
 
-## Browser-only hosted setup (no terminal)
-1. Render dashboard → New → **Blueprint** → choose this repo → Apply (uses `render.yaml` + `Dockerfile`; needs a paid plan because the vault needs a persistent disk).
-2. Open the service → Environment → copy `WINDSWORD_ADMIN_TOKEN`.
-3. Open `https://<your-service>.onrender.com/settings/` → Connections → enter the access code → Google Sign-In → paste Client ID + Secret → Save → Test Connection.
-4. Add the two addresses shown under Advanced to the Google OAuth client, then **Try Google sign-in**.
-
-GitHub Pages alone can't do this (static hosting); the gateway must be hosted, and it serves the UI itself so cookies are first-party.
+## Credential handoff (alpha): GitHub Repository Secrets
+See [GITHUB_SECRETS_HANDOFF.md](GITHUB_SECRETS_HANDOFF.md). Hosting is not decided yet; nothing here requires it.
