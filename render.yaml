@@ -1,0 +1,18 @@
+# Free live server for WindSwordAI (Render dashboard -> New -> Blueprint -> pick this repo -> Apply).
+# Serves the app and the gateway from one https address: https://windswordai.onrender.com
+# In the Render dashboard, Environment tab, add the one value marked "sync: false" below.
+services:
+  - type: web
+    name: windswordai
+    runtime: docker
+    plan: free               # sleeps when idle (first visit after a pause is slower); no permanent disk
+    healthCheckPath: /v1/health
+    envVars:
+      - key: WINDSWORD_AUTH
+        value: required      # nobody gets in without signing in with Google
+      - key: WINDSWORD_HOST
+        value: 0.0.0.0
+      - key: WINDSWORD_GOOGLE_CLIENT_ID
+        value: 485500838676-n6mluvqbplk39en025a6ujo9dh8j4lsn.apps.googleusercontent.com   # public, not secret
+      - key: WINDSWORD_GOOGLE_CLIENT_SECRET
+        sync: false          # paste in Render (Environment). Never in GitHub files or chat.
