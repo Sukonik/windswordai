@@ -1,4 +1,5 @@
-import { toStateIO, type StateIO } from "../state.ts";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { SecretStore } from "../stores.ts";
 import { validateInput, type ConnectionDefinition, type FieldValues } from "./schema.ts";
 
@@ -21,19 +22,21 @@ export interface ConnectionStatus {
 }
 
 export class ConnectStore {
-  private io: StateIO;
+  private path: string;
   private secrets: SecretStore;
-  constructor(dirOrIo: string | StateIO, secrets: SecretStore) {
-    this.io = toStateIO(dirOrIo);
+  constructor(dir: string, secrets: SecretStore) {
+    // Not connections.json: that file belongs to the per-user AI connection store.
+    this.path = join(dir, "connect.json");
     this.secrets = secrets;
   }
 
-  // Document "connect" (not "connections": that one belongs to the per-user AI connection store).
   private read(): File {
-    const f = this.io.read<Partial<File>>("connect", {});
-    return { version: 1, connections: f.connections ?? {} };
+    try {
+      const f = existsSync(this.path) ? (JSON.parse(readFileSync(this.path, "utf8")) as Partial<File>) : {};
+      return { version: 1, connections: f.connections ?? {} };
+    } catch { return { version: 1, connections: {} }; }
   }
-  private write(f: File) { return this.io.write("connect", f); }
+  private write(f: File) { writeFileSync(this.path, JSON.stringify(f, null, 2), { mode: 0o600 }); }
 
   status(def: ConnectionDefinition): ConnectionStatus {
     const e = this.read().connections[def.id];
@@ -73,7 +76,7 @@ export class ConnectStore {
       } else if (v !== undefined) entry.public[f.name] = v;
     }
     file.connections[def.id] = entry;
-    await this.write(file);
+    this.write(file);
   }
 
   async remove(def: ConnectionDefinition): Promise<void> {
@@ -82,6 +85,6 @@ export class ConnectStore {
     if (!e) return;
     for (const ref of Object.values(e.secretRefs)) await this.secrets.delete(ref);
     delete file.connections[def.id];
-    await this.write(file);
+    this.write(file);
   }
 }

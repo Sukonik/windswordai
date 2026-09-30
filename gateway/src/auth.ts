@@ -7,8 +7,9 @@
 // ID token verified (RS256 against Google's JWKS, iss/aud/exp/nonce/email_verified), opaque session
 // stored server-side (only a hash of the session id is persisted), HttpOnly cookie.
 import { createHash, createPublicKey, createVerify, randomBytes, timingSafeEqual } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { AuditLog } from "./audit.ts";
-import { toStateIO, type StateIO } from "./state.ts";
 import { sanitizeReturnTo } from "./oauth.ts";
 
 export const LOGIN_SCOPES = ["openid", "email", "profile"] as const;
@@ -216,41 +217,50 @@ export class MemorySessionStore implements SessionStore {
   }
 }
 
+function readJson<T>(path: string, fallback: T): T {
+  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as T) : fallback;
+}
+
 export class FileUserStore implements UserStore {
-  private io: StateIO;
-  constructor(dirOrIo: string | StateIO) {
-    this.io = toStateIO(dirOrIo);
+  private path: string;
+  constructor(dir: string) {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    this.path = join(dir, "users.json");
   }
   async upsertFromIdentity(identity: VerifiedIdentity) {
-    const all = this.io.read<Record<string, User>>("users", {});
+    const all = readJson<Record<string, User>>(this.path, {});
     const now = new Date().toISOString();
     const existing = Object.values(all).find((u) => u.sub === identity.sub);
     const user: User = existing
       ? { ...existing, email: identity.email, name: identity.name, lastLoginAt: now }
       : { id: `usr_${randomBytes(9).toString("hex")}`, sub: identity.sub, email: identity.email, name: identity.name, createdAt: now, lastLoginAt: now };
     all[user.id] = user;
-    await this.io.write("users", all);
+    writeFileSync(this.path, JSON.stringify(all, null, 2), { mode: 0o600 });
     return user;
   }
   async get(id: string) {
-    return this.io.read<Record<string, User>>("users", {})[id];
+    return readJson<Record<string, User>>(this.path, {})[id];
   }
 }
 
 export class FileSessionStore implements SessionStore {
-  private io: StateIO;
-  constructor(dirOrIo: string | StateIO) {
-    this.io = toStateIO(dirOrIo);
+  private path: string;
+  constructor(dir: string) {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    this.path = join(dir, "sessions.json");
   }
   private read() {
-    return this.io.read<Record<string, Session>>("sessions", {});
+    return readJson<Record<string, Session>>(this.path, {});
+  }
+  private write(all: Record<string, Session>) {
+    writeFileSync(this.path, JSON.stringify(all), { mode: 0o600 });
   }
   async put(hash: string, session: Session) {
     const all = this.read();
     const now = Date.now();
     for (const [k, v] of Object.entries(all)) if (v.expiresAt < now) delete all[k]; // opportunistic cleanup
     all[hash] = session;
-    await this.io.write("sessions", all);
+    this.write(all);
   }
   async get(hash: string) {
     return this.read()[hash];
@@ -258,7 +268,7 @@ export class FileSessionStore implements SessionStore {
   async delete(hash: string) {
     const all = this.read();
     delete all[hash];
-    await this.io.write("sessions", all);
+    this.write(all);
   }
 }
 
