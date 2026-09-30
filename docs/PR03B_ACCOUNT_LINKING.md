@@ -87,3 +87,5 @@ This lands after the hosted HTTPS deployment (PR 03A), because the session cooki
 - No vendor currently offers a verified delegated-model-access flow that this PR enables by default; only the mechanism and Gemini's bearer path exist.
 - Official provider logos are not included (monograms).
 - Chat restore after an OAuth redirect keeps completed turns and the draft; an in-flight streaming reply is marked "Interrupted while connecting".
+
+See also: [PR03C hosted sign-in](PR03C_HOSTED_AUTH.md). Provider links are bound to the signed-in user when `WINDSWORD_AUTH=required`.

@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useGateway } from "@/components/GatewayProvider";
 import { Icon } from "@/components/Icon";
 import { ProviderMark } from "@/components/ProviderMark";
+import { useSheetBehavior } from "@/components/useSheetBehavior";
 import { providerUi } from "@/lib/gateway/provider-ui";
 import type { ProviderView } from "@/gateway/src/types";
 
@@ -69,30 +70,7 @@ function ConnectSheet({ request, onClose, notify }: { request: ConnectRequest; o
   const dialogRef = useRef<HTMLDivElement>(null);
   const keyVisible = showKey || !oauthReady;
 
-  // Focus management + Escape + background scroll lock while the sheet is open.
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    document.body.dataset.sheetOpen = "true";
-    const first = dialogRef.current?.querySelector<HTMLElement>("input, button.btn--primary, button");
-    (first ?? dialogRef.current)?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "Tab" && dialogRef.current) {
-        const items = [...dialogRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled])")];
-        if (!items.length) return;
-        const firstEl = items[0];
-        const last = items[items.length - 1];
-        if (event.shiftKey && document.activeElement === firstEl) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); firstEl.focus(); }
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      delete document.body.dataset.sheetOpen;
-      previous?.focus?.();
-    };
-  }, [onClose]);
+  useSheetBehavior(dialogRef, onClose);
 
   async function continueWithProvider() {
     setBusy(true);

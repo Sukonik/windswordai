@@ -115,7 +115,7 @@ function ProviderCard({ view, demo }: { view: ProviderView; demo: boolean }) {
 }
 
 export function AIConnections() {
-  const { status, mode, setMode, providers, loading, error, settings, saveSettings, linked, clearLinked } = useGateway();
+  const { status, mode, setMode, providers, loading, error, settings, saveSettings, linked, clearLinked, user } = useGateway();
   const { notify } = useConnect();
   const demo = status.state === "demo" || status.state === "checking";
   const [url, setUrl] = useState(settings.url ?? "");
@@ -145,6 +145,9 @@ export function AIConnections() {
 
   const visible = providers.filter((p) => p.descriptor.id !== "mock");
   const mock = providers.find((p) => p.descriptor.id === "mock");
+
+  // Signed-out visitors on a sign-in-required gateway can still reach Connections (administrator setup) but have no AI accounts to manage.
+  if (status.state === "login_required") return null;
 
   return (
     <section className="settings-page">
@@ -207,6 +210,7 @@ export function AIConnections() {
         <dl className="diagnostics">
           <div><dt>Providers loaded</dt><dd>{providers.length}</dd></div>
           <div><dt>Mode</dt><dd>{mode === "secure_local" ? "Secure Local" : "Standard"}</dd></div>
+          <div><dt>Signed in as</dt><dd>{user ? user.email : "Not required"}</dd></div>
           <div><dt>Transport</dt><dd>{status.state === "connected" ? "WindSwordAI gateway" : "In-browser demo"}</dd></div>
         </dl>
       </details>

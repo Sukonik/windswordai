@@ -2,7 +2,9 @@ import type { ChatRequest, ExecutionMode, PolicyDecision } from "./types.ts";
 
 export interface AuditEvent {
   ts: string;
-  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed" | "connection.failed";
+  /** Opaque WindSwordAI user id (never an email address). */
+  userId?: string;
+  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed" | "connection.failed" | "auth.login" | "auth.login_failed" | "auth.logout" | "setup.connection_saved" | "setup.connection_tested" | "setup.connection_removed";
   sessionId?: string;
   compareGroupId?: string;
   providerId?: string;
@@ -21,24 +23,29 @@ export interface AuditEvent {
  * document contents and credentials cannot be logged by construction.
  */
 export class AuditLog {
-  private events: AuditEvent[] = [];
-  private sink?: (line: string) => void;
-  private max: number;
-  constructor(sink?: (line: string) => void, max = 500) {
-    this.sink = sink;
-    this.max = max;
+  private shared: { events: AuditEvent[]; sink?: (line: string) => void; max: number };
+  private defaults: { userId?: string };
+  constructor(sink?: (line: string) => void, max = 500, shared?: { events: AuditEvent[]; sink?: (line: string) => void; max: number }, defaults: { userId?: string } = {}) {
+    this.shared = shared ?? { events: [], sink, max };
+    this.defaults = defaults;
+  }
+
+  /** A view of the same log that stamps every event with a user id and only reads that user's events. */
+  scoped(userId: string): AuditLog {
+    return new AuditLog(undefined, 0, this.shared, { userId });
   }
 
   record(event: Omit<AuditEvent, "ts">): AuditEvent {
-    const full: AuditEvent = { ts: new Date().toISOString(), ...event };
-    this.events.push(full);
-    if (this.events.length > this.max) this.events.shift();
-    this.sink?.(JSON.stringify(full));
+    const full: AuditEvent = { ts: new Date().toISOString(), ...this.defaults, ...event };
+    this.shared.events.push(full);
+    if (this.shared.events.length > this.shared.max) this.shared.events.shift();
+    this.shared.sink?.(JSON.stringify(full));
     return full;
   }
 
   recent(limit = 50): AuditEvent[] {
-    return this.events.slice(-limit);
+    const all = this.defaults.userId ? this.shared.events.filter((e) => e.userId === this.defaults.userId) : this.shared.events;
+    return all.slice(-limit);
   }
 }
 

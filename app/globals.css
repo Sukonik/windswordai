@@ -864,3 +864,37 @@ body[data-sheet-open="true"] { overflow: hidden; }
   .about-layer--beam { opacity: .5; }
   .about-layer--gem { opacity: .35; }
 }
+
+/* -- Sign-in gate + account row ------------------------------------------------- */
+.login-gate { max-width: 440px; margin: 6vh auto 0; display: grid; justify-items: center; gap: 14px; text-align: center; }
+.login-gate__mark { height: 72px; }
+.login-gate h1 { font-size: clamp(26px, 7vw, 34px); }
+.login-gate p { color: var(--text-soft); font-size: 15px; }
+.login-gate .btn { width: 100%; }
+.login-gate__fine { color: var(--muted) !important; font-size: 13px !important; }
+.account { display: flex; align-items: center; gap: 10px; padding: 4px 4px 12px; }
+.account__avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--blue) 22%, var(--surface-2)); border: 1px solid var(--line-strong); font-weight: 700; }
+.account__meta { flex: 1; min-width: 0; display: grid; }
+.account__meta strong, .account__meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account__meta strong { font-size: 14px; }
+.account__meta small { color: var(--muted); font-size: 12px; }
+
+/* --- WindSword Connect (Settings → Connections): reuses the provider cards, sheet, fields and badges above --- */
+.connections { margin-top: 28px; padding-top: 8px; scroll-margin-top: 16px; }
+.settings-title { font-size: clamp(24px, 4vw, 32px); letter-spacing: -.02em; }
+.connections__group { display: grid; gap: 10px; }
+.connections__label { margin: 10px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.connections .provider-card__title h4 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+.connections__status { margin: 0; }
+.connections__result { color: var(--blue-hot); font-size: 14px; font-weight: 600; }
+.connections__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; color: var(--text-soft); cursor: pointer; }
+.connections__check input { width: 20px; height: 20px; accent-color: var(--blue); }
+.connections__saved { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm, 10px); background: var(--surface-2, var(--surface)); }
+.connections__saved-text { display: inline-flex; align-items: center; gap: 8px; color: var(--blue-hot); font-weight: 600; font-size: 15px; }
+.field__label { font-size: 13px; font-weight: 650; color: var(--text-soft); }
+.field select { min-height: 44px; padding: 0 12px; border-radius: var(--radius-sm, 10px); border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; }
+.connections__advanced { display: grid; gap: 10px; margin: 8px 0 0; }
+.connections__advanced dt { font-size: 12px; font-weight: 650; color: var(--muted); }
+.connections__advanced dd { margin: 2px 0 0; }
+.connections__advanced code { overflow-wrap: anywhere; word-break: break-all; }
+.connections__danger { margin-top: 6px; padding-top: 16px; border-top: 1px solid var(--line); }

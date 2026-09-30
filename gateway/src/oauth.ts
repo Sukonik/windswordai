@@ -30,6 +30,8 @@ interface Pending {
   returnTo: string;
   redirectUri: string;
   createdAt: number;
+  /** The signed-in user that started the flow (hosted mode). Another user cannot complete it. */
+  userId?: string;
 }
 
 const PENDING_TTL_MS = 10 * 60_000;
@@ -68,7 +70,7 @@ export class OAuthManager {
   }
 
   /** Build the provider authorization URL. Stores a single-use, provider-bound state + PKCE verifier. */
-  start(providerId: string, opts: { returnTo?: string; redirectBase: string }): string {
+  start(providerId: string, opts: { returnTo?: string; redirectBase: string; userId?: string }): string {
     const cfg = this.configs[providerId];
     if (!cfg) throw new ProviderError("bad_request", "Account linking is not enabled for that provider.");
     this.sweep();
@@ -76,7 +78,7 @@ export class OAuthManager {
     const verifier = b64url(randomBytes(48));
     const challenge = b64url(createHash("sha256").update(verifier).digest());
     const redirectUri = `${opts.redirectBase.replace(/\/+$/, "")}/oauth/callback/${providerId}`;
-    this.pending.set(state, { providerId, verifier, returnTo: sanitizeReturnTo(opts.returnTo), redirectUri, createdAt: this.now() });
+    this.pending.set(state, { providerId, verifier, returnTo: sanitizeReturnTo(opts.returnTo), redirectUri, createdAt: this.now(), userId: opts.userId });
 
     const url = new URL(cfg.authorizeUrl);
     url.searchParams.set("response_type", "code");
@@ -116,11 +118,11 @@ export class OAuthManager {
   }
 
   /** Validate state (single use, provider-bound, unexpired) and exchange the code with the PKCE verifier. */
-  async complete(providerId: string, params: { code?: string | null; state?: string | null; error?: string | null }): Promise<{ returnTo: string; tokens: StoredTokens; baseUrl?: string }> {
+  async complete(providerId: string, params: { code?: string | null; state?: string | null; error?: string | null }, userId?: string): Promise<{ returnTo: string; tokens: StoredTokens; baseUrl?: string }> {
     const state = params.state ?? "";
     const pending = this.pending.get(state);
     this.pending.delete(state); // single use, even on failure
-    if (!pending || pending.providerId !== providerId || this.now() - pending.createdAt > PENDING_TTL_MS) {
+    if (!pending || pending.providerId !== providerId || pending.userId !== userId || this.now() - pending.createdAt > PENDING_TTL_MS) {
       throw new ProviderError("bad_request", "That authorization link is invalid or has expired. Please start again.");
     }
     if (params.error || !params.code) {

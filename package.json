@@ -22,7 +22,8 @@
     "build:local": "node scripts/build-local.mjs",
     "start:local": "node scripts/build-local.mjs && node scripts/run-gateway.mjs",
     "review:gateway": "node scripts/gateway-e2e.mjs",
-    "fake-providers": "node scripts/fake-providers.mjs 9911"
+    "fake-providers": "node scripts/fake-providers.mjs 9911",
+    "review:auth": "node scripts/auth-e2e.mjs"
   },
   "dependencies": {
     "next": "16.3.5",

@@ -62,11 +62,11 @@ try {
     await page.getByRole("article", { name: "Claude" }).waitFor();
 
     check(`${t} gateway controls are hidden by default (Advanced is collapsed)`, !(await page.locator("#advanced").evaluate((el) => el.open)) && !(await page.getByLabel(/Gateway URL/).isVisible()));
-    const names = await page.locator(".provider-card").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    const names = await page.locator(".settings-page:not(.connections) .provider-card").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
     check(`${t} branded cards in registry (product-priority) order, no internal mock card`, JSON.stringify(names) === JSON.stringify(["Claude", "ChatGPT", "Muse", "Gemini", "Mistral", "Ollama"]), names);
-    const actions = await page.locator(".provider-card").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".provider-card__action .btn")].map((b) => b.textContent.trim())));
+    const actions = await page.locator(".settings-page:not(.connections) .provider-card").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".provider-card__action .btn")].map((b) => b.textContent.trim())));
     check(`${t} each card offers one obvious action`, JSON.stringify(actions.map((a) => a[0])) === JSON.stringify(["Connect Claude", "Connect ChatGPT", "Connect Muse", "Connect Gemini", "Connect Mistral", "Use local Ollama"]), actions);
-    check(`${t} no jargon (gateway, token, base URL) in the normal view`, !/gateway url|gateway token|base url/i.test(await page.locator(".provider-grid").innerText()));
+    check(`${t} no jargon (gateway, token, base URL) in the normal view`, !/gateway url|gateway token|base url/i.test(await page.locator(".settings-page:not(.connections) .provider-grid").innerText()));
 
     const claudeCard = page.getByRole("article", { name: "Claude" });
     await claudeCard.getByText("Details").click();

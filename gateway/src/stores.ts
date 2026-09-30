@@ -44,3 +44,29 @@ export class MemoryConnectionStore implements ConnectionStore {
     return [...this.map.values()];
   }
 }
+
+/**
+ * Namespaces connections per user on top of any ConnectionStore. A user can only ever see or change
+ * their own connections; secrets are referenced by opaque ids that only the owner's records hold.
+ */
+export class ScopedConnectionStore implements ConnectionStore {
+  private base: ConnectionStore;
+  private prefix: string;
+  constructor(base: ConnectionStore, userId: string) {
+    this.base = base;
+    this.prefix = `${userId}::`;
+  }
+  async get(providerId: string) {
+    const c = await this.base.get(this.prefix + providerId);
+    return c ? { ...c, providerId } : undefined;
+  }
+  async set(connection: Connection) {
+    await this.base.set({ ...connection, providerId: this.prefix + connection.providerId });
+  }
+  async delete(providerId: string) {
+    await this.base.delete(this.prefix + providerId);
+  }
+  async all() {
+    return (await this.base.all()).filter((c) => c.providerId.startsWith(this.prefix)).map((c) => ({ ...c, providerId: c.providerId.slice(this.prefix.length) }));
+  }
+}
