@@ -7,7 +7,7 @@ import { timingSafeEqual } from "node:crypto";
 import { AuthService, LoginError, buildCookie, parseCookies, type User } from "./auth.ts";
 import type { Gateway } from "./gateway.ts";
 import { sanitizeReturnTo } from "./oauth.ts";
-import type { createSetupHandler } from "./setup-page.ts";
+import type { createConnectApi } from "./connect/api.ts";
 import { ProviderError } from "./types.ts";
 import type { ChatRequest, ExecutionMode } from "./types.ts";
 
@@ -25,8 +25,8 @@ export interface ServerOptions {
   publicUrl?: string;
   /** WindSwordAI sign-in and sessions. Mode `required` gates the whole API behind a signed-in user. */
   auth?: AuthService;
-  /** Local-only page for entering the Google client secret (see setup-page.ts). */
-  setup?: ReturnType<typeof createSetupHandler>;
+  /** WindSword Connect: admin API behind Settings → Connections (connect/api.ts). */
+  connect?: ReturnType<typeof createConnectApi>;
 }
 
 const MIME: Record<string, string> = {
@@ -146,7 +146,9 @@ export function createHttpServer(opts: ServerOptions): Server {
     const auth = liveAuth();
     try {
       if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
-      if (url.pathname === "/setup/google" && opts.setup) return await opts.setup(req, res);
+      // Old setup addresses now live inside the app.
+      if (url.pathname === "/setup" || url.pathname.startsWith("/setup/")) { res.writeHead(302, { location: "/settings/#connections" }).end(); return; }
+      if (opts.connect && await opts.connect(req, res, url.pathname)) return;
 
       // ---- WindSwordAI sign-in (Google). Identity only: openid email profile.
       if (url.pathname === "/auth/google/start" && req.method === "GET") {

@@ -23,15 +23,14 @@ Registered with Google (project "WindSwordAI", External/Testing, Web application
 Google only accepts `https` redirect URIs (or `localhost`). LAN `http://192.168…` addresses cannot sign in; the gateway shows an explanatory page.
 **When the hosted https gateway exists**, add its exact origin and `<origin>/oauth/callback/google` to the Google OAuth client. The UI must be served from the gateway origin so the session cookie is first-party.
 
-## Local setup (real Google): paste the secret in a form
-1. Run `npm run start:local` and open **http://localhost:8787/setup/google** (this computer only).
-2. Paste the Google Client Secret into the password field (the Client ID is pre-filled if known, otherwise paste it too), keep "Require Google sign-in" ticked, click **Save secret**.
-3. Sign-in switches on immediately (no restart). Open http://localhost:8787 and click **Continue with Google**.
+## WindSword Connect: set up in the browser (Settings → Connections)
+No terminal, no `.env` editing. Connections are defined as data (`gateway/src/connect/definitions.ts`): id, name, category (Identity / AI Providers / Storage / Local Services) and fields (`text`, `url`, `password`, `select`, `checkbox`; each marked `secret` or public), plus optional `apply`, `test`, `clear`. One generic screen (`components/ConnectionsPanel.tsx`) and one generic store render and save every connection; Google Sign-In is the first definition. Adding Dropbox, Drive, S3/R2 means adding a definition.
 
-How the page protects the secret: only reachable from this machine (loopback socket, `localhost` Host header, no proxy headers; disabled when `WINDSWORD_PUBLIC_URL` is a public host), one-time page token + Origin check, masked field, never echoed back, never logged or audited (only "saved"), not in URL/cookies/browser storage.
-It is stored in the encrypted vault (AES-256-GCM, `.windsword/vault.json`); `.windsword/local-config.json` holds only the public client id, a vault reference and the sign-in switch. Both are git-ignored. Environment variables (`.env`, host Secrets) still win when set. Anyone with access to your OS account can reach the page, the same trust boundary as a `.env` file.
+Flow: open WindSwordAI → Settings → Connections → Google Sign-In → **Connect/Manage** → Client ID + Client Secret → **Save** → **Test Connection**. Statuses: Connected ✓, Ready, Needs setup, Connection error, Admin disabled. The technical Google addresses are under **Advanced**.
 
-Hosted: use the host's Secrets/Environment Variables interface instead (the page is refused there by design).
+Secrets: masked field, never preloaded, never returned (the browser only gets `secretsSet: true`), "Secret saved ✓" + explicit **Replace secret**, **Remove connection** kept separate. Stored in the encrypted vault (`.windsword/vault.json`); public values (Client ID) in `.windsword/connect.json`. Nothing in URLs, localStorage, logs, audit (only "saved / tested / removed" + connection id) or the static build.
+
+Who can use it: on the computer running the gateway (loopback only; proxied/foreign-Host requests refused), or hosted at the https public URL after **administrator access**: the code in `WINDSWORD_ADMIN_TOKEN` (HttpOnly Strict cookie, 30 min, 5 wrong codes lock 10 min) and/or a signed-in Google account listed in `WINDSWORD_ADMIN_EMAILS`. Without either, hosted setup is off ("Admin disabled"). Writes need a CSRF token and same-origin. Old `/setup` links redirect to Settings → Connections. Environment variables still win when set.
 
 ## How it works
 - Authorization Code + PKCE (S256) + `nonce`, performed server-side; single-use state; login-CSRF binding cookie `ws_login`.
@@ -47,7 +46,7 @@ Hosted: use the host's Secrets/Environment Variables interface instead (the page
 ## Browser-only hosted setup (no terminal)
 1. Render dashboard → New → **Blueprint** → choose this repo → Apply (uses `render.yaml` + `Dockerfile`; needs a paid plan because the vault needs a persistent disk).
 2. Open the service → Environment → copy `WINDSWORD_ADMIN_TOKEN`.
-3. Visit `https://<your-service>.onrender.com/setup/google` (also reachable from the app: Settings → Authentication → Set up Google sign-in). Enter the admin code, paste Client ID + Client Secret, Save.
-4. Add the two addresses the page shows (JavaScript origin, redirect URI) to the Google OAuth client, then click **Test Google login**.
+3. Open `https://<your-service>.onrender.com/settings/` → Connections → enter the access code → Google Sign-In → paste Client ID + Secret → Save → Test Connection.
+4. Add the two addresses shown under Advanced to the Google OAuth client, then **Try Google sign-in**.
 
-The secret is posted to the gateway over https, stored encrypted on the server disk, never shown again, never logged. Admin unlock: HttpOnly Strict `__Host-` cookie, 30-minute session, 5 wrong codes lock it for 10 minutes. Without `WINDSWORD_ADMIN_TOKEN` the hosted page stays off. GitHub Pages alone can't do this (static hosting); the gateway must be hosted.
+GitHub Pages alone can't do this (static hosting); the gateway must be hosted, and it serves the UI itself so cookies are first-party.

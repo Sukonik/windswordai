@@ -1,11 +1,11 @@
 import { AIConnections } from "@/components/AIConnections";
-import { AuthSettingsCard } from "@/components/AuthSettingsCard";
+import { ConnectionsPanel } from "@/components/ConnectionsPanel";
 
 export default function SettingsPage() {
   return (
     <>
       <AIConnections />
-      <AuthSettingsCard />
+      <ConnectionsPanel />
     </>
   );
 }

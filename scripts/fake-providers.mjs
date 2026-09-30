@@ -49,6 +49,7 @@ export function startFakeProviders(port = 0) {
     if (url.pathname === "/google/token" && req.method === "POST") {
       const f = new URLSearchParams(body);
       google.tokenGrants.push({ hasVerifier: Boolean(f.get("code_verifier")), secretOk: f.get("client_secret") === FAKE_GOOGLE.clientSecret });
+      if (f.get("client_secret") !== FAKE_GOOGLE.clientSecret || f.get("client_id") !== FAKE_GOOGLE.clientId) return send(401, { error: "invalid_client" });
       const entry = google.codes.get(f.get("code"));
       google.codes.delete(f.get("code"));
       const pkce = entry && createHash("sha256").update(f.get("code_verifier") ?? "").digest("base64url") === entry.challenge;

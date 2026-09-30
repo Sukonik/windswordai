@@ -146,6 +146,9 @@ export function AIConnections() {
   const visible = providers.filter((p) => p.descriptor.id !== "mock");
   const mock = providers.find((p) => p.descriptor.id === "mock");
 
+  // Signed-out visitors on a sign-in-required gateway can still reach Connections (administrator setup) but have no AI accounts to manage.
+  if (status.state === "login_required") return null;
+
   return (
     <section className="settings-page">
       <header>

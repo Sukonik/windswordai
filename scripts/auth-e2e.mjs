@@ -44,6 +44,7 @@ async function open(viewport, path, context) {
   const page = await ctx.newPage();
   page.on("console", (m) => m.type() === "error" && errors.push(`console: ${m.text()}`));
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  page.on("response", (r) => { if (r.status() >= 500) errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`); });
   await page.goto(gw + path, { waitUntil: "networkidle" });
   return { context: ctx, page };
 }
@@ -172,24 +173,46 @@ try {
     c2.stdout.on("data", (d) => (log2 += d)); c2.stderr.on("data", (d) => (log2 += d));
     try {
       for (let i = 0; i < 60; i++) { try { if ((await fetch(`${gw2}/v1/health`)).ok) break; } catch { /* starting */ } await new Promise((r) => setTimeout(r, 100)); }
-      check("[setup] a fresh gateway starts in local mode and points at the setup page", /sign-in\s*: off/.test(log2) && /\/setup\/google/.test(log2));
+      check("[connect] a fresh gateway starts in local mode and points at Connections", /sign-in\s*: off/.test(log2) && /settings\//.test(log2));
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await ctx.addInitScript((url) => { try { localStorage.setItem("windsword-gateway", JSON.stringify({ url })); localStorage.setItem("windsword-theme", "dark"); } catch { /* ignore */ } }, gw2);
       const page = await ctx.newPage();
       const pageErrors = [];
       page.on("pageerror", (e) => pageErrors.push(e.message));
-      await page.goto(`${gw2}/setup/google`, { waitUntil: "networkidle" });
-      check("[setup] the secret field is a masked password input", (await page.getByLabel("Google Client Secret").getAttribute("type")) === "password");
-      await page.getByLabel(/Google Client ID/).fill(FAKE_GOOGLE.clientId);
-      await page.getByLabel("Google Client Secret").fill(FAKE_GOOGLE.clientSecret);
-      await page.screenshot({ path: "review/screenshots/auth-setup-form.png" });
-      await page.getByRole("button", { name: "Save secret" }).click();
-      await page.getByText(/Saved\. Now tell Claude/).waitFor();
+      await page.goto(`${gw2}/settings/`, { waitUntil: "networkidle" });
+      await page.getByRole("heading", { name: "Connections", exact: true }).waitFor();
+      const card = page.getByRole("article", { name: "Google Sign-In" });
+      check("[connect] Connections lists categories and a Google Sign-In card marked Needs setup", /identity/i.test(await page.locator(".connections").innerText()) && /Needs setup/.test(await card.innerText()) && (await page.getByText("Coming soon").count()) >= 3);
+      await page.screenshot({ path: "review/screenshots/auth-connections-390.png", fullPage: true });
+      await card.getByRole("button", { name: "Connect" }).click();
+      const sheet = page.getByRole("dialog", { name: "Google Sign-In" });
+      await sheet.waitFor();
+      await page.waitForTimeout(500); // let the slide-up finish
+      const box = await sheet.boundingBox();
+      check("[connect] on a phone the form opens as a bottom sheet", box && Math.abs(box.y + box.height - 844) < 2 && box.width >= 388, box);
+      check("[connect] the secret field is masked and empty", (await sheet.getByLabel("Client Secret").getAttribute("type")) === "password" && (await sheet.getByLabel("Client Secret").inputValue()) === "");
+      check("[connect] normal view avoids technical terms", !/redirect URI|PKCE|bearer|vault/i.test(await sheet.innerText()));
+      await sheet.getByLabel("Client ID").fill(FAKE_GOOGLE.clientId);
+      await sheet.getByLabel("Client Secret").fill(FAKE_GOOGLE.clientSecret);
+      await page.screenshot({ path: "review/screenshots/auth-connections-sheet-390.png" });
+      await sheet.getByRole("button", { name: "Save", exact: true }).click();
+      await sheet.getByText("Saved ✓", { exact: true }).waitFor();
       const html = await page.content();
-      check("[setup] after saving, the secret is not shown anywhere on the page", !html.includes(FAKE_GOOGLE.clientSecret) && (await page.getByLabel("Google Client Secret").inputValue()) === "");
-      await page.screenshot({ path: "review/screenshots/auth-setup-saved.png" });
-      check("[setup] the secret is not in the URL, cookies or browser storage", !page.url().includes(FAKE_GOOGLE.clientSecret) && (await ctx.cookies()).length === 0 && (await page.evaluate((v) => !JSON.stringify({ ...localStorage, ...sessionStorage }).includes(v), FAKE_GOOGLE.clientSecret)));
-      const files = ["vault.json", "local-config.json", "audit.jsonl"].map((f) => readFileSync(join(state2, f), "utf8")).join("\n");
-      check("[setup] the secret is stored encrypted, not in plain text on disk", !files.includes(FAKE_GOOGLE.clientSecret) && /googleClientSecretRef/.test(files));
+      check("[connect] after saving, the secret is gone from the page and shows 'Secret saved ✓' with Replace secret", !html.includes(FAKE_GOOGLE.clientSecret) && (await sheet.getByText("Secret saved ✓").count()) === 1 && (await sheet.getByRole("button", { name: "Replace secret" }).count()) === 1 && (await sheet.getByLabel("Client Secret").count()) === 0);
+      check("[connect] the secret is not in the URL, cookies or browser storage", !page.url().includes(FAKE_GOOGLE.clientSecret) && (await page.evaluate((v) => !JSON.stringify({ ...localStorage, ...sessionStorage }).includes(v) && !document.cookie.includes(v), FAKE_GOOGLE.clientSecret)));
+      await sheet.getByRole("button", { name: "Test Connection" }).click();
+      await sheet.getByText("Google accepted the Client ID and Secret.").waitFor();
+      check("[connect] Test Connection reports success in plain words", true);
+      await sheet.getByRole("button", { name: "Replace secret" }).click();
+      check("[connect] Replace secret is explicit and shows an empty masked field", (await sheet.getByLabel("Client Secret").inputValue()) === "");
+      await sheet.getByText("Advanced").click();
+      check("[connect] technical addresses live under Advanced", /oauth\/callback\/google/.test(await sheet.innerText()));
+      check("[connect] Remove connection is separate and destructive-styled", (await sheet.locator(".connections__danger .btn--danger").count()) === 1);
+      await sheet.getByRole("button", { name: "Close" }).click();
+      await sheet.waitFor({ state: "detached" });
+      check("[connect] the card now reads Connected ✓ with Manage", /Connected ✓/.test(await card.innerText()) && (await card.getByRole("button", { name: "Manage" }).count()) === 1);
+      const files = ["vault.json", "connect.json", "audit.jsonl"].map((f) => readFileSync(join(state2, f), "utf8")).join("\n");
+      check("[connect] the secret is stored encrypted, not in plain text on disk", !files.includes(FAKE_GOOGLE.clientSecret) && /secretRefs/.test(files));
       // Sign-in is now on, without a restart, and the fake Google accepts the pasted secret at the token step.
       await setIdentity({ sub: "sub-setup", email: "setup@example.com", name: "Setup User" });
       await ctx.addInitScript((url) => { try { localStorage.setItem("windsword-gateway", JSON.stringify({ url })); } catch { /* ignore */ } }, gw2);
@@ -198,17 +221,17 @@ try {
       await page.getByRole("link", { name: "Continue with Google" }).click();
       await page.waitForURL(/\/chat\/$/);
       await page.getByLabel("Message WindSwordAI").waitFor();
-      check("[setup] Google sign-in works with the pasted secret (no .env edited, no restart)", upstream.google.tokenGrants.at(-1)?.secretOk === true);
-      check("[setup] gateway output never contained the pasted secret", !log2.includes(FAKE_GOOGLE.clientSecret));
+      check("[connect] Google sign-in works with the pasted secret (no .env edited, no restart)", upstream.google.tokenGrants.at(-1)?.secretOk === true);
+      check("[connect] gateway output never contained the pasted secret", !log2.includes(FAKE_GOOGLE.clientSecret));
       // Persisted: a restart keeps sign-in required and configured.
       c2.kill(); await new Promise((r) => c2.once("exit", r));
       log2 = "";
       const c3 = spawn("node", ["gateway/server.ts"], { env: env2, stdio: ["ignore", "pipe", "pipe"] });
       c3.stdout.on("data", (d) => (log2 += d)); c3.stderr.on("data", (d) => (log2 += d));
       for (let i = 0; i < 60; i++) { try { if ((await fetch(`${gw2}/v1/health`)).ok) break; } catch { /* starting */ } await new Promise((r) => setTimeout(r, 100)); }
-      check("[setup] after a restart the saved setup is still in effect", /sign-in\s*: Google REQUIRED/.test(log2) && /secret set: yes/.test(log2) && !log2.includes(FAKE_GOOGLE.clientSecret));
+      check("[connect] after a restart the saved setup is still in effect", /sign-in\s*: Google REQUIRED/.test(log2) && /secret set: yes/.test(log2) && !log2.includes(FAKE_GOOGLE.clientSecret));
       c3.kill();
-      check("[setup] no page errors", pageErrors.length === 0, pageErrors);
+      check("[connect] no page errors", pageErrors.length === 0, pageErrors);
       await ctx.close();
     } finally { c2.kill(); }
   }

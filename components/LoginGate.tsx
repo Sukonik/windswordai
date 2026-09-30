@@ -37,7 +37,7 @@ export function LoginGate({ url, googleConfigured }: { url: string; googleConfig
       ) : (
         <p className="sheet__note">
           Sign-in isn’t set up yet. The administrator can finish it on{" "}
-          <a href={`${url.replace(/\/+$/, "")}/setup/google`}>the setup page</a>.
+          <a href="/settings/#connections">Settings → Connections</a>.
         </p>
       )}
       <p className="login-gate__fine">You’ll go to Google’s own page to sign in, then come straight back.</p>

@@ -7,10 +7,11 @@ import { AuditLog } from "./src/audit.ts";
 import { AuthService, FileSessionStore, FileUserStore, googleLoginFromEnv } from "./src/auth.ts";
 import { Gateway } from "./src/gateway.ts";
 import { createHttpServer } from "./src/http.ts";
-import { LocalConfig } from "./src/local-config.ts";
+import { CONNECTIONS, googleLogin } from "./src/connect/definitions.ts";
+import { createConnectApi } from "./src/connect/api.ts";
+import { ConnectStore } from "./src/connect/store.ts";
 import { OAuthManager, oauthConfigsFromEnv } from "./src/oauth.ts";
 import { createDefaultRegistry } from "./src/providers/index.ts";
-import { createSetupHandler } from "./src/setup-page.ts";
 import { FileConnectionStore, FileSecretStore, loadVaultKey } from "./src/vault.ts";
 
 // Local secrets live in a git-ignored .env (never .env.example). Existing environment variables win.
@@ -27,15 +28,15 @@ const publicUrl = env.WINDSWORD_PUBLIC_URL || env.RENDER_EXTERNAL_URL || undefin
 const loopback = host === "127.0.0.1" || host === "localhost" || host === "::1";
 mkdirSync(stateDir, { recursive: true, mode: 0o700 });
 const secrets = new FileSecretStore(stateDir, loadVaultKey(stateDir));
-// Values entered on the local setup page (/setup/google) live in the encrypted vault; environment variables win.
-const localConfig = new LocalConfig(stateDir, secrets);
-const authMode = (env.WINDSWORD_AUTH ?? (localConfig.authRequired ? "required" : "off")).toLowerCase();
+// Values entered on the local setup page (/setup) live in the encrypted vault; environment variables win.
+const connectStore = new ConnectStore(stateDir, secrets);
+const savedGoogle = await connectStore.resolve(googleLogin);
+const authMode = (env.WINDSWORD_AUTH ?? (savedGoogle?.requireSignIn ? "required" : "off")).toLowerCase();
 if (authMode !== "off" && authMode !== "required") {
   console.error(`WINDSWORD_AUTH must be "off" or "required" (got "${authMode}").`);
   process.exit(1);
 }
-const storedSecret = await localConfig.googleClientSecret();
-const google = googleLoginFromEnv(env) ?? googleLoginFromEnv({ ...env, WINDSWORD_GOOGLE_CLIENT_ID: env.WINDSWORD_GOOGLE_CLIENT_ID || localConfig.googleClientId, WINDSWORD_GOOGLE_CLIENT_SECRET: storedSecret });
+const google = googleLoginFromEnv(env) ?? (savedGoogle ? googleLoginFromEnv({ ...env, WINDSWORD_GOOGLE_CLIENT_ID: String(savedGoogle.clientId), WINDSWORD_GOOGLE_CLIENT_SECRET: String(savedGoogle.clientSecret) }) : undefined);
 // With sign-in required the session cookie is the credential; a bearer token is only auto-generated otherwise.
 const token = env.WINDSWORD_GATEWAY_TOKEN || (loopback || authMode === "required" ? undefined : randomBytes(18).toString("base64url"));
 
@@ -53,7 +54,12 @@ const auth = new AuthService({
   secureCookies,
   audit,
 });
-const setup = createSetupHandler({ auth, config: localConfig, audit, env, publicUrl, adminToken: env.WINDSWORD_ADMIN_TOKEN || undefined });
+const connect = createConnectApi({
+  store: connectStore, definitions: CONNECTIONS, auth, audit, env, publicUrl,
+  allowedOrigins: (env.WINDSWORD_ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000").split(",").map((o) => o.trim()),
+  adminToken: env.WINDSWORD_ADMIN_TOKEN || undefined,
+  adminEmails: (env.WINDSWORD_ADMIN_EMAILS ?? "").split(","),
+});
 
 const registry = createDefaultRegistry();
 const oauthConfigs = oauthConfigsFromEnv(env, registry.list().map((a) => a.descriptor.id));
@@ -78,7 +84,7 @@ if (authMode === "required") {
 const staticDir = resolve(env.WINDSWORD_STATIC_DIR ?? "out");
 const origins = (env.WINDSWORD_ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8787,http://127.0.0.1:8787").split(",").map((s) => s.trim());
 
-const server = createHttpServer({ gateway, auth, setup, host, port, token, allowedOrigins: origins, publicUrl, staticDir: existsSync(staticDir) ? staticDir : undefined });
+const server = createHttpServer({ gateway, auth, connect, host, port, token, allowedOrigins: origins, publicUrl, staticDir: existsSync(staticDir) ? staticDir : undefined });
 server.listen(port, host, () => {
   console.log(`\nWindSwordAI gateway listening on http://${host}:${port}`);
   if (host === "0.0.0.0" || host === "::") {
@@ -97,12 +103,12 @@ server.listen(port, host, () => {
     console.log(`              scopes: openid email profile · redirect URI: ${(publicUrl ?? `http://localhost:${port}`).replace(/\/+$/, "")}/oauth/callback/google`);
     if (authMode === "required" && !secureCookies && !loopback) console.log("  WARNING   : sign-in over plain http beyond localhost. Set WINDSWORD_PUBLIC_URL to your https origin.");
   } else if (authMode === "required") {
-    console.log(`  sign-in   : REQUIRED but Google is not set up yet -> open http://localhost:${port}/setup/google on this computer`);
+    console.log(`  sign-in   : REQUIRED but Google is not set up yet -> open http://localhost:${port}/settings/#connections on this computer`);
   } else {
-    console.log(`  sign-in   : off (single-user local mode). To enable Google sign-in: open http://localhost:${port}/setup/google`);
+    console.log(`  sign-in   : off (single-user local mode). To enable Google sign-in: open Settings → Connections at http://localhost:${port}/settings/`);
   }
   if (env.WINDSWORD_ADMIN_TOKEN) {
-    console.log(`  admin     : browser setup enabled at ${(publicUrl ?? "(set WINDSWORD_PUBLIC_URL to your https address)").replace(/\/+$/, "")}/setup/google (admin code set: yes)`);
+    console.log(`  admin     : browser setup enabled at ${(publicUrl ?? "(set WINDSWORD_PUBLIC_URL to your https address)").replace(/\/+$/, "")}/settings/ → Connections (admin code set: yes)`);
   }
   console.log(`  token     : ${token ? token : "not required on loopback"}`);
   console.log(`  default mode is Secure Local: cloud providers stay blocked until you switch to Standard in the UI.\n`);

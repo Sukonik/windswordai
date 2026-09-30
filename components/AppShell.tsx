@@ -288,7 +288,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <main id="main-content" tabIndex={-1} className={isChat ? "content content--chat" : "content"}>
-          {status.state === "login_required" ? <LoginGate url={status.url} googleConfigured={status.googleConfigured} /> : children}
+          {status.state === "login_required" && !pathname.startsWith("/settings") ? <LoginGate url={status.url} googleConfigured={status.googleConfigured} /> : children}
         </main>
       </div>
     </div>
