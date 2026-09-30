@@ -43,3 +43,11 @@ Hosted: use the host's Secrets/Environment Variables interface instead (the page
 
 ## Verification
 `npm test` (unit + repo-hygiene secret scan) and `npm run review:auth` (real UI + gateway + fake Google issuing real RS256 ID tokens; 49 checks at 390 and 1440 px). Real-Google behaviour is **not** verified until the secret is supplied locally.
+
+## Browser-only hosted setup (no terminal)
+1. Render dashboard → New → **Blueprint** → choose this repo → Apply (uses `render.yaml` + `Dockerfile`; needs a paid plan because the vault needs a persistent disk).
+2. Open the service → Environment → copy `WINDSWORD_ADMIN_TOKEN`.
+3. Visit `https://<your-service>.onrender.com/setup/google` (also reachable from the app: Settings → Authentication → Set up Google sign-in). Enter the admin code, paste Client ID + Client Secret, Save.
+4. Add the two addresses the page shows (JavaScript origin, redirect URI) to the Google OAuth client, then click **Test Google login**.
+
+The secret is posted to the gateway over https, stored encrypted on the server disk, never shown again, never logged. Admin unlock: HttpOnly Strict `__Host-` cookie, 30-minute session, 5 wrong codes lock it for 10 minutes. Without `WINDSWORD_ADMIN_TOKEN` the hosted page stays off. GitHub Pages alone can't do this (static hosting); the gateway must be hosted.

@@ -20,8 +20,10 @@ if (existsSync(".env")) {
 
 const env = process.env;
 const host = env.WINDSWORD_HOST ?? "127.0.0.1";
-const port = Number(env.WINDSWORD_PORT ?? 8787);
+const port = Number(env.WINDSWORD_PORT ?? env.PORT ?? 8787); // PORT is what most hosting providers inject
 const stateDir = resolve(env.WINDSWORD_STATE_DIR ?? ".windsword");
+// Hosts like Render inject their public https address; use it unless one is set explicitly.
+const publicUrl = env.WINDSWORD_PUBLIC_URL || env.RENDER_EXTERNAL_URL || undefined;
 const loopback = host === "127.0.0.1" || host === "localhost" || host === "::1";
 mkdirSync(stateDir, { recursive: true, mode: 0o700 });
 const secrets = new FileSecretStore(stateDir, loadVaultKey(stateDir));
@@ -39,7 +41,7 @@ const token = env.WINDSWORD_GATEWAY_TOKEN || (loopback || authMode === "required
 
 const auditFile = join(stateDir, "audit.jsonl");
 const audit = new AuditLog((line) => appendFileSync(auditFile, line + "\n", { mode: 0o600 }));
-const secureCookies = Boolean(env.WINDSWORD_PUBLIC_URL?.startsWith("https://"));
+const secureCookies = Boolean(publicUrl?.startsWith("https://"));
 // Always created so sign-in can be switched on from the local setup page without a restart.
 const auth = new AuthService({
   mode: authMode,
@@ -51,7 +53,7 @@ const auth = new AuthService({
   secureCookies,
   audit,
 });
-const setup = createSetupHandler({ auth, config: localConfig, audit, env, publicUrl: env.WINDSWORD_PUBLIC_URL });
+const setup = createSetupHandler({ auth, config: localConfig, audit, env, publicUrl, adminToken: env.WINDSWORD_ADMIN_TOKEN || undefined });
 
 const registry = createDefaultRegistry();
 const oauthConfigs = oauthConfigsFromEnv(env, registry.list().map((a) => a.descriptor.id));
@@ -76,7 +78,7 @@ if (authMode === "required") {
 const staticDir = resolve(env.WINDSWORD_STATIC_DIR ?? "out");
 const origins = (env.WINDSWORD_ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8787,http://127.0.0.1:8787").split(",").map((s) => s.trim());
 
-const server = createHttpServer({ gateway, auth, setup, host, port, token, allowedOrigins: origins, publicUrl: env.WINDSWORD_PUBLIC_URL, staticDir: existsSync(staticDir) ? staticDir : undefined });
+const server = createHttpServer({ gateway, auth, setup, host, port, token, allowedOrigins: origins, publicUrl, staticDir: existsSync(staticDir) ? staticDir : undefined });
 server.listen(port, host, () => {
   console.log(`\nWindSwordAI gateway listening on http://${host}:${port}`);
   if (host === "0.0.0.0" || host === "::") {
@@ -92,12 +94,15 @@ server.listen(port, host, () => {
   console.log(`  account linking (OAuth): ${Object.keys(oauthConfigs).length ? Object.keys(oauthConfigs).join(", ") : "none configured (developer keys only)"}`);
   if (google) {
     console.log(`  sign-in   : Google ${authMode === "required" ? "REQUIRED" : "credentials found but sign-in is off"} (client id ${google.clientId.slice(0, 12)}…, secret set: yes)`);
-    console.log(`              scopes: openid email profile · redirect URI: ${(env.WINDSWORD_PUBLIC_URL ?? `http://localhost:${port}`).replace(/\/+$/, "")}/oauth/callback/google`);
+    console.log(`              scopes: openid email profile · redirect URI: ${(publicUrl ?? `http://localhost:${port}`).replace(/\/+$/, "")}/oauth/callback/google`);
     if (authMode === "required" && !secureCookies && !loopback) console.log("  WARNING   : sign-in over plain http beyond localhost. Set WINDSWORD_PUBLIC_URL to your https origin.");
   } else if (authMode === "required") {
     console.log(`  sign-in   : REQUIRED but Google is not set up yet -> open http://localhost:${port}/setup/google on this computer`);
   } else {
     console.log(`  sign-in   : off (single-user local mode). To enable Google sign-in: open http://localhost:${port}/setup/google`);
+  }
+  if (env.WINDSWORD_ADMIN_TOKEN) {
+    console.log(`  admin     : browser setup enabled at ${(publicUrl ?? "(set WINDSWORD_PUBLIC_URL to your https address)").replace(/\/+$/, "")}/setup/google (admin code set: yes)`);
   }
   console.log(`  token     : ${token ? token : "not required on loopback"}`);
   console.log(`  default mode is Secure Local: cloud providers stay blocked until you switch to Standard in the UI.\n`);

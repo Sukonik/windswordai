@@ -3,7 +3,7 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AuditLog } from "./audit.ts";
-import { googleLoginFromEnv, type AuthService } from "./auth.ts";
+import { buildCookie, googleLoginFromEnv, parseCookies, type AuthService } from "./auth.ts";
 import type { LocalConfig } from "./local-config.ts";
 
 export interface SetupContext {
@@ -13,6 +13,11 @@ export interface SetupContext {
   /** Process environment, used only to build the Google endpoints and to see what the environment already provides. */
   env: Record<string, string | undefined>;
   publicUrl?: string;
+  /**
+   * Admin setup code for hosted use (WINDSWORD_ADMIN_TOKEN). Without it the page only works on the machine
+   * running the gateway. With it, the page also works at the https WINDSWORD_PUBLIC_URL after unlocking.
+   */
+  adminToken?: string;
 }
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -30,6 +35,12 @@ export function isLocalSetupRequest(req: IncomingMessage, publicUrl?: string): b
     try { if (!LOCAL_HOSTS.has(new URL(publicUrl).hostname.toLowerCase().replace(/^(\[?::1\]?)$/, "[::1]"))) return false; } catch { return false; }
   }
   return true;
+}
+
+/** Hosted access: the request must arrive at the configured https public origin (Host header check stops host spoofing). */
+function isHostedRequest(req: IncomingMessage, publicUrl?: string): boolean {
+  if (!publicUrl?.startsWith("https://")) return false;
+  try { return String(req.headers.host ?? "").toLowerCase() === new URL(publicUrl).host.toLowerCase(); } catch { return false; }
 }
 
 function safeEqual(a: string, b: string) {
@@ -87,13 +98,29 @@ async function readForm(req: IncomingMessage, limit = 8192): Promise<URLSearchPa
   return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
 }
 
+const ADMIN_COOKIE = "__Host-windsword_admin";
+const ADMIN_SESSION_MS = 30 * 60_000;
+const MAX_UNLOCK_FAILURES = 5;
+const UNLOCK_LOCK_MS = 10 * 60_000;
+
 export function createSetupHandler(ctx: SetupContext) {
   const token = randomBytes(24).toString("base64url");
+  const adminSessions = new Map<string, number>();
+  let failures = 0;
+  let lockedUntil = 0;
   const envSecret = Boolean(googleLoginFromEnv(ctx.env));
 
   async function status() {
     const storedSecret = Boolean(await ctx.config.googleClientSecret());
     return { hasSecret: envSecret || storedSecret, clientId: ctx.auth.googleClientId ?? ctx.config.googleClientId ?? ctx.env.WINDSWORD_GOOGLE_CLIENT_ID ?? "" };
+  }
+
+  function redirectHelp() {
+    const origin = publicOrigin();
+    if (!origin) return "";
+    return `<div class="card"><strong>Add these to your Google OAuth client</strong> <small>(Google Cloud Console → Credentials → your Web client)</small>
+<p class="muted" style="margin:.5rem 0 0">Authorized JavaScript origin<br><code>${esc(origin)}</code></p>
+<p class="muted" style="margin:.5rem 0 0">Authorized redirect URI<br><code>${esc(origin)}/oauth/callback/google</code></p></div>`;
   }
 
   function view(s: { hasSecret: boolean; clientId: string }, message = "") {
@@ -106,21 +133,68 @@ ${message}
 <strong>Sign-in:</strong> ${on ? `<span class="ok">required</span>` : `<span class="muted">off</span>`}</p>
 ${envSecret ? `<p class="muted">The secret is provided by the server environment (<code>WINDSWORD_GOOGLE_CLIENT_SECRET</code>), so there is nothing to paste.</p>` : form(token, s.clientId, s.hasSecret, on)}
 </div>
-${s.hasSecret && ctx.auth.googleConfigured ? `<p><a href="/chat/">Open WindSwordAI</a> and click <strong>Continue with Google</strong> to test it.</p>` : ""}`;
+${s.hasSecret && ctx.auth.googleConfigured ? `<p><a href="/auth/google/start?returnTo=%2Fsetup%2Fgoogle" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#8ab4ff;color:#101216;font-weight:600;text-decoration:none">Test Google login</a></p><p class="muted">Signs you in with Google (name and email only) and brings you back here.</p>` : ""}
+${redirectHelp()}`;
+  }
+
+  const publicOrigin = () => { try { return ctx.publicUrl ? new URL(ctx.publicUrl).origin : undefined; } catch { return undefined; } };
+
+  function unlockPage(res: ServerResponse, message = "", status = 200) {
+    return page(res, status, `<h1>Admin setup</h1><p class="muted">Enter the admin setup code (<code>WINDSWORD_ADMIN_TOKEN</code>) from your hosting provider’s Environment settings to continue.</p>${message}
+<div class="card"><form method="post" action="/setup/google" autocomplete="off"><input type="hidden" name="action" value="unlock">
+<label for="code">Admin setup code</label>
+<input id="code" name="code" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" required>
+<button type="submit">Unlock</button></form></div>`);
+  }
+
+  function isAdmin(req: IncomingMessage): boolean {
+    const id = parseCookies(req.headers.cookie)[ADMIN_COOKIE];
+    const exp = id ? adminSessions.get(id) : undefined;
+    if (!id || !exp) return false;
+    if (exp < Date.now()) { adminSessions.delete(id); return false; }
+    return true;
   }
 
   return async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (!isLocalSetupRequest(req, ctx.publicUrl)) return page(res, 403, `<h1>Setup is local only</h1><p>Open this page on the computer running WindSwordAI, at <code>http://localhost:8787/setup/google</code>. On a hosted server, add the secret in your hosting provider’s Secrets settings instead.</p>`);
+    const local = isLocalSetupRequest(req, ctx.publicUrl);
+    const hosted = !local && Boolean(ctx.adminToken) && isHostedRequest(req, ctx.publicUrl);
+    if (!local && !hosted) {
+      return page(res, 403, ctx.publicUrl?.startsWith("https://") && !ctx.adminToken
+        ? `<h1>Setup is switched off</h1><p>To set up Google sign-in from your browser, add an environment variable <code>WINDSWORD_ADMIN_TOKEN</code> (any long random text) in your hosting provider’s settings, redeploy, and open this page again.</p>`
+        : `<h1>Setup isn’t available here</h1><p>Open this page at your WindSwordAI address (<code>https://…</code>) when the server has an admin setup code, or on the computer running WindSwordAI at <code>http://localhost:8787/setup/google</code>.</p>`);
+    }
+    const expectedOrigin = local ? `http://${req.headers.host}` : publicOrigin();
+
+    if (hosted && !isAdmin(req)) {
+      if (req.method === "POST") {
+        if (req.headers.origin !== expectedOrigin) return page(res, 403, `<h1>Blocked</h1><p>That request came from a different site.</p>`);
+        let f: URLSearchParams;
+        try { f = await readForm(req, 2048); } catch { return unlockPage(res, `<p class="err" role="alert">That code is too long.</p>`, 400); }
+        if (Date.now() < lockedUntil) return unlockPage(res, `<p class="err" role="alert">Too many wrong codes. Wait a few minutes and try again.</p>`, 429);
+        if (f.get("action") === "unlock" && safeEqual(f.get("code") ?? "", ctx.adminToken ?? "")) {
+          failures = 0;
+          const id = randomBytes(32).toString("base64url");
+          adminSessions.set(id, Date.now() + ADMIN_SESSION_MS);
+          res.writeHead(303, { location: "/setup/google", "cache-control": "no-store", "set-cookie": buildCookie(ADMIN_COOKIE, id, { maxAge: ADMIN_SESSION_MS / 1000, secure: true, sameSite: "Strict" }) }).end();
+          return;
+        }
+        if (++failures >= MAX_UNLOCK_FAILURES) { failures = 0; lockedUntil = Date.now() + UNLOCK_LOCK_MS; }
+        return unlockPage(res, `<p class="err" role="alert">That code isn’t right.</p>`, 401);
+      }
+      if (req.method !== "GET") return void res.writeHead(405).end();
+      return unlockPage(res);
+    }
+
     if (req.method === "GET") {
       const q = new URL(req.url ?? "/", "http://x").searchParams;
-      const message = q.get("saved") ? `<p class="ok">✓ Saved. Now tell Claude “secret added”.</p>` : q.get("cleared") ? `<p class="ok">✓ Removed.</p>` : "";
+      const message = q.get("saved") ? `<p class="ok">✓ Saved. Now click “Test Google login” below.</p>` : q.get("cleared") ? `<p class="ok">✓ Removed.</p>` : "";
       return page(res, 200, view(await status(), message));
     }
     if (req.method !== "POST") return void res.writeHead(405).end();
 
     const problem = (text: string) => async () => page(res, 400, view(await status(), `<p class="err" role="alert">${text}</p>`));
     const origin = req.headers.origin;
-    if (origin && origin !== `http://${req.headers.host}`) return page(res, 403, `<h1>Blocked</h1><p>That request came from a different site.</p>`);
+    if (origin && origin !== expectedOrigin) return page(res, 403, `<h1>Blocked</h1><p>That request came from a different site.</p>`);
     let f: URLSearchParams;
     try { f = await readForm(req); } catch { return problem("That was too large to be a secret.")(); }
     if (!safeEqual(f.get("token") ?? "", token)) return page(res, 403, `<h1>Please reload</h1><p>This form expired. <a href="/setup/google">Reload the setup page</a> and try again.</p>`);

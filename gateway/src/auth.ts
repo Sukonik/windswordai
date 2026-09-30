@@ -288,8 +288,8 @@ export function parseCookies(header: string | undefined): Record<string, string>
   return out;
 }
 
-export function buildCookie(name: string, value: string, opts: { maxAge: number; secure: boolean; path?: string }): string {
-  return [`${name}=${value}`, `Path=${opts.path ?? "/"}`, `Max-Age=${opts.maxAge}`, "HttpOnly", "SameSite=Lax", ...(opts.secure ? ["Secure"] : [])].join("; ");
+export function buildCookie(name: string, value: string, opts: { maxAge: number; secure: boolean; path?: string; sameSite?: "Lax" | "Strict" }): string {
+  return [`${name}=${value}`, `Path=${opts.path ?? "/"}`, `Max-Age=${opts.maxAge}`, "HttpOnly", `SameSite=${opts.sameSite ?? "Lax"}`, ...(opts.secure ? ["Secure"] : [])].join("; ");
 }
 
 // ---------------------------------------------------------------------------------------------
