@@ -7,6 +7,7 @@ import { timingSafeEqual } from "node:crypto";
 import { AuthService, LoginError, buildCookie, parseCookies, type User } from "./auth.ts";
 import type { Gateway } from "./gateway.ts";
 import { sanitizeReturnTo } from "./oauth.ts";
+import type { createSetupHandler } from "./setup-page.ts";
 import { ProviderError } from "./types.ts";
 import type { ChatRequest, ExecutionMode } from "./types.ts";
 
@@ -24,6 +25,8 @@ export interface ServerOptions {
   publicUrl?: string;
   /** WindSwordAI sign-in and sessions. Mode `required` gates the whole API behind a signed-in user. */
   auth?: AuthService;
+  /** Local-only page for entering the Google client secret (see setup-page.ts). */
+  setup?: ReturnType<typeof createSetupHandler>;
 }
 
 const MIME: Record<string, string> = {
@@ -43,7 +46,8 @@ function safeEqual(a: string, b: string) {
 export function createHttpServer(opts: ServerOptions): Server {
   const host = opts.host ?? "127.0.0.1";
   if (!isLoopback(host) && !opts.token && opts.auth?.mode !== "required") throw new Error("A gateway token is required when binding beyond loopback (or enable sign-in with WINDSWORD_AUTH=required).");
-  const auth = opts.auth && opts.auth.mode === "required" ? opts.auth : undefined;
+  // Sign-in can be switched on while running (local setup page), so look it up per request.
+  const liveAuth = () => (opts.auth && opts.auth.mode === "required" ? opts.auth : undefined);
   const max = opts.maxBodyBytes ?? 1_000_000;
   const allowed = new Set(opts.allowedOrigins ?? []);
 
@@ -89,6 +93,7 @@ export function createHttpServer(opts: ServerOptions): Server {
 
   /** Who is calling? Session cookie (sign-in required mode), gateway bearer token, or open local access. */
   async function identify(req: IncomingMessage): Promise<Identity | undefined> {
+    const auth = liveAuth();
     if (!auth) return authorized(req) ? { gateway: opts.gateway, via: "open" } : undefined;
     const session = await auth.authenticate(req.headers.cookie);
     if (session) return { gateway: opts.gateway.forUser(session.user.id), user: session.user, csrf: session.csrf, sessionId: session.sessionId, via: "session" };
@@ -138,8 +143,10 @@ export function createHttpServer(opts: ServerOptions): Server {
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://gateway.local");
     cors(req, res);
+    const auth = liveAuth();
     try {
       if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
+      if (url.pathname === "/setup/google" && opts.setup) return await opts.setup(req, res);
 
       // ---- WindSwordAI sign-in (Google). Identity only: openid email profile.
       if (url.pathname === "/auth/google/start" && req.method === "GET") {

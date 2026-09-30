@@ -325,7 +325,7 @@ interface PendingLogin {
 const PENDING_TTL_MS = 10 * 60_000;
 
 export class AuthService {
-  readonly mode: AuthMode;
+  private currentMode: AuthMode;
   readonly secure: boolean;
   readonly sessionCookie: string;
   readonly loginCookie = "ws_login";
@@ -342,7 +342,7 @@ export class AuthService {
 
   constructor(opts: AuthOptions) {
     this.audit = opts.audit;
-    this.mode = opts.mode;
+    this.currentMode = opts.mode;
     this.google = opts.google;
     this.users = opts.users ?? new MemoryUserStore();
     this.sessions = opts.sessions ?? new MemorySessionStore();
@@ -353,6 +353,25 @@ export class AuthService {
     this.sessionCookie = this.secure ? "__Host-windsword_session" : "windsword_session";
     this.allowed = (opts.allowedEmails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean);
     if (this.google) this.jwks = new JwksCache(this.google.jwksUrl, this.fetchImpl, this.now);
+  }
+
+  get mode(): AuthMode {
+    return this.currentMode;
+  }
+
+  /** Turn sign-in on or off while the gateway runs (used by the local setup page). */
+  setMode(mode: AuthMode) {
+    this.currentMode = mode;
+  }
+
+  /** Install (or clear) the Google login client without restarting. Existing sessions stay valid. */
+  setGoogle(google: GoogleLoginConfig | undefined) {
+    this.google = google;
+    this.jwks = google ? new JwksCache(google.jwksUrl, this.fetchImpl, this.now) : undefined;
+  }
+
+  get googleClientId() {
+    return this.google?.clientId;
   }
 
   get googleConfigured() {

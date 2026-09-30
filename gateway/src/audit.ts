@@ -4,7 +4,7 @@ export interface AuditEvent {
   ts: string;
   /** Opaque WindSwordAI user id (never an email address). */
   userId?: string;
-  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed" | "connection.failed" | "auth.login" | "auth.login_failed" | "auth.logout";
+  type: "policy.decision" | "chat.start" | "chat.end" | "chat.error" | "connection.added" | "connection.removed" | "connection.failed" | "auth.login" | "auth.login_failed" | "auth.logout" | "setup.google_saved" | "setup.google_cleared";
   sessionId?: string;
   compareGroupId?: string;
   providerId?: string;

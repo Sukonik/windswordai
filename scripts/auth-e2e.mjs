@@ -159,6 +159,59 @@ try {
   check("gateway output never printed the client secret or any token", secrets.every((s) => !log.includes(s)) && !/eyJ[A-Za-z0-9_-]{20,}/.test(log));
   check("gateway announced sign-in without revealing the secret", /sign-in\s*: Google REQUIRED/.test(log) && /secret set: yes/.test(log) && /openid email profile/.test(log));
   check("environment API keys were ignored in multi-user mode", /environment API keys are ignored while sign-in is required/.test(log));
+
+  // ------------------------------------------------ setup page: paste the secret in the browser, no .env editing
+  {
+    const gw2Port = 8793, gw2 = `http://127.0.0.1:${gw2Port}`;
+    const state2 = mkdtempSync(join(tmpdir(), "ws-setup-e2e-"));
+    const env2 = { ...process.env, WINDSWORD_PORT: String(gw2Port), WINDSWORD_STATE_DIR: state2, WINDSWORD_STATIC_DIR: "out",
+      WINDSWORD_GOOGLE_AUTHORIZE_URL: `${up}/google/authorize`, WINDSWORD_GOOGLE_TOKEN_URL: `${up}/google/token`, WINDSWORD_GOOGLE_JWKS_URL: `${up}/google/certs` };
+    delete env2.WINDSWORD_AUTH; delete env2.WINDSWORD_GOOGLE_CLIENT_ID; delete env2.WINDSWORD_GOOGLE_CLIENT_SECRET;
+    const c2 = spawn("node", ["gateway/server.ts"], { env: env2, stdio: ["ignore", "pipe", "pipe"] });
+    let log2 = "";
+    c2.stdout.on("data", (d) => (log2 += d)); c2.stderr.on("data", (d) => (log2 += d));
+    try {
+      for (let i = 0; i < 60; i++) { try { if ((await fetch(`${gw2}/v1/health`)).ok) break; } catch { /* starting */ } await new Promise((r) => setTimeout(r, 100)); }
+      check("[setup] a fresh gateway starts in local mode and points at the setup page", /sign-in\s*: off/.test(log2) && /\/setup\/google/.test(log2));
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const page = await ctx.newPage();
+      const pageErrors = [];
+      page.on("pageerror", (e) => pageErrors.push(e.message));
+      await page.goto(`${gw2}/setup/google`, { waitUntil: "networkidle" });
+      check("[setup] the secret field is a masked password input", (await page.getByLabel("Google Client Secret").getAttribute("type")) === "password");
+      await page.getByLabel(/Google Client ID/).fill(FAKE_GOOGLE.clientId);
+      await page.getByLabel("Google Client Secret").fill(FAKE_GOOGLE.clientSecret);
+      await page.screenshot({ path: "review/screenshots/auth-setup-form.png" });
+      await page.getByRole("button", { name: "Save secret" }).click();
+      await page.getByText(/Saved\. Now tell Claude/).waitFor();
+      const html = await page.content();
+      check("[setup] after saving, the secret is not shown anywhere on the page", !html.includes(FAKE_GOOGLE.clientSecret) && (await page.getByLabel("Google Client Secret").inputValue()) === "");
+      await page.screenshot({ path: "review/screenshots/auth-setup-saved.png" });
+      check("[setup] the secret is not in the URL, cookies or browser storage", !page.url().includes(FAKE_GOOGLE.clientSecret) && (await ctx.cookies()).length === 0 && (await page.evaluate((v) => !JSON.stringify({ ...localStorage, ...sessionStorage }).includes(v), FAKE_GOOGLE.clientSecret)));
+      const files = ["vault.json", "local-config.json", "audit.jsonl"].map((f) => readFileSync(join(state2, f), "utf8")).join("\n");
+      check("[setup] the secret is stored encrypted, not in plain text on disk", !files.includes(FAKE_GOOGLE.clientSecret) && /googleClientSecretRef/.test(files));
+      // Sign-in is now on, without a restart, and the fake Google accepts the pasted secret at the token step.
+      await setIdentity({ sub: "sub-setup", email: "setup@example.com", name: "Setup User" });
+      await ctx.addInitScript((url) => { try { localStorage.setItem("windsword-gateway", JSON.stringify({ url })); } catch { /* ignore */ } }, gw2);
+      await page.goto(`${gw2}/chat/`, { waitUntil: "networkidle" });
+      await page.getByRole("heading", { name: "Sign in to WindSwordAI" }).waitFor();
+      await page.getByRole("link", { name: "Continue with Google" }).click();
+      await page.waitForURL(/\/chat\/$/);
+      await page.getByLabel("Message WindSwordAI").waitFor();
+      check("[setup] Google sign-in works with the pasted secret (no .env edited, no restart)", upstream.google.tokenGrants.at(-1)?.secretOk === true);
+      check("[setup] gateway output never contained the pasted secret", !log2.includes(FAKE_GOOGLE.clientSecret));
+      // Persisted: a restart keeps sign-in required and configured.
+      c2.kill(); await new Promise((r) => c2.once("exit", r));
+      log2 = "";
+      const c3 = spawn("node", ["gateway/server.ts"], { env: env2, stdio: ["ignore", "pipe", "pipe"] });
+      c3.stdout.on("data", (d) => (log2 += d)); c3.stderr.on("data", (d) => (log2 += d));
+      for (let i = 0; i < 60; i++) { try { if ((await fetch(`${gw2}/v1/health`)).ok) break; } catch { /* starting */ } await new Promise((r) => setTimeout(r, 100)); }
+      check("[setup] after a restart the saved setup is still in effect", /sign-in\s*: Google REQUIRED/.test(log2) && /secret set: yes/.test(log2) && !log2.includes(FAKE_GOOGLE.clientSecret));
+      c3.kill();
+      check("[setup] no page errors", pageErrors.length === 0, pageErrors);
+      await ctx.close();
+    } finally { c2.kill(); }
+  }
   const unexpected = errors.filter((e) => !/status of (401|403)/.test(e));
   check("no unexpected console or page errors", unexpected.length === 0, errors);
 } catch (err) {

@@ -35,7 +35,10 @@ export function LoginGate({ url, googleConfigured }: { url: string; googleConfig
       {googleConfigured ? (
         <a className="btn btn--primary btn--large" href={href}>Continue with Google</a>
       ) : (
-        <p className="sheet__note">Sign-in isn’t configured on this gateway yet.</p>
+        <p className="sheet__note">
+          Sign-in isn’t set up yet. On the computer running WindSwordAI, open{" "}
+          <a href={`${url.replace(/\/+$/, "")}/setup/google`}>the local setup page</a> and paste your Google Client Secret.
+        </p>
       )}
       <p className="login-gate__fine">You’ll go to Google’s own page to sign in, then come straight back.</p>
     </section>

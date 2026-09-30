@@ -4,7 +4,7 @@ import { createHash, createSign, generateKeyPairSync, randomBytes } from "node:c
 import { createServer } from "node:http";
 
 export const FAKE_KEYS = { claude: "sk-fake-claude-000111", openai: "sk-fake-openai-000222" };
-export const FAKE_GOOGLE = { clientId: "e2e-google-client.apps.googleusercontent.com", clientSecret: "e2e-google-secret-not-real" };
+export const FAKE_GOOGLE = { clientId: "123456789-e2eclient.apps.googleusercontent.com", clientSecret: "e2e-google-secret-not-real" };
 export const FAKE_OAUTH = { clientId: "e2e-client", clientSecret: "e2e-client-secret", scope: "scope.generate" };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
